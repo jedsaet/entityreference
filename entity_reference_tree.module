@@ -1,0 +1,923 @@
+<?php
+
+require_once (drupal_get_path('module', 'entity_reference_tree') . '/plugins/term.inc');
+require_once (drupal_get_path('module', 'entity_reference_tree') . '/plugins/oggroup.inc');
+
+
+/**
+ * Group audience widget.
+ */
+define('TERM_REFERENCE_TREE_WIDGET', 'term_reference_tree');
+
+/**
+ * Group audience widget.
+ */
+define('OG_AUDIENCE_TREE_WIDGET', 'group_audience_tree');
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function entity_reference_tree_field_widget_info() {
+  return array(
+    TERM_REFERENCE_TREE_WIDGET => array (
+      'label' => 'Term reference tree',
+      'field types' => array('taxonomy_term_reference'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM, 
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+      'settings' => array(
+        'start_minimized' => 0,
+        'leaves_only' => 0,
+        'filter_view' => '',
+        'select_parents' => 0,
+        'track_list' => 0,
+        'allowed_ids' => '',
+        'token_display' => '',
+      ),
+    ),
+    OG_AUDIENCE_TREE_WIDGET => array(
+      'label'       => t('Tree view field'),
+      'description' => t('Display the list of referenceable groups as a tree view selection.'),
+      'field types' => array('group'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM, 
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+      'settings' => array(
+        'start_minimized' => 0,
+        'leaves_only' => 0,
+        'filter_view' => '',
+        'select_parents' => 0,
+        'track_list' => 0,
+        'allowed_ids' => '',
+        'token_display' => '',
+      ),
+    ),     
+  );
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function entity_reference_tree_field_formatter_info() {
+  return array(
+    TERM_REFERENCE_TREE_WIDGET => array(
+      'label' => 'Term reference tree',
+      'field types' => array('taxonomy_term_reference'),
+      'settings' => array(
+        'token_display_selected' => '',
+        'token_display_unselected' => '',
+      ),
+    ),
+    OG_AUDIENCE_TREE_WIDGET => array(
+      'label' => 'Group tree view',
+      'field types' => array('group'),
+      'settings' => array(
+        'token_display_selected' => '',
+        'token_display_unselected' => '',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function entity_reference_tree_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    case TERM_REFERENCE_TREE_WIDGET:
+      $element[] = array(
+        '#theme' => 'term_tree_list',
+        '#data' => $items,
+        '#display' => $display,
+        '#attached' => array('css' => array(drupal_get_path('module', 'entity_reference_tree') . '/css/entity_reference_tree.css', drupal_get_path('module', 'entity_reference_tree') . '/css/term_reference_tree.css')),
+      );
+      break;
+    case OG_AUDIENCE_TREE_WIDGET :
+      $element[] = array(
+        '#theme' => 'oggroup_tree_list',
+        '#data' => $items,
+        '#display' => $display,
+        '#attached' => array('css' => array(drupal_get_path('module', 'entity_reference_tree') . '/css/entity_reference_tree.css', drupal_get_path('module', 'entity_reference_tree') . '/css/oggroup_reference_tree.css')),
+      );
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function entity_reference_tree_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $element = array();
+  if($display['type'] == TERM_REFERENCE_TREE_WIDGET && module_exists('token')) {
+    $element['token_display_selected'] = array(
+      '#type' => 'textarea',
+      '#title' => 'Custom Term Label',
+      '#description' => t("Use tokens to change the term label.  Leave this field blank to use the term name linked to its taxonomy page."),
+      '#default_value' => $settings['token_display_selected'],
+    );
+
+    $element['token_display_unselected'] = array(
+      '#type' => 'textarea',
+      '#title' => 'Custom Term Label (unselected)',
+      '#description' => t("Use tokens to change the term label for unselected parent terms.  Leave this field blank to use the same tokens as above."),
+      '#default_value' => $settings['token_display_unselected'],
+    );
+
+    $element['tokens_list'] = array(
+      '#theme' => 'token_tree',
+      '#token_types' => array('term'),
+    );
+  }
+  
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function entity_reference_tree_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $summary = '';
+
+  if ($display['type'] == TERM_REFERENCE_TREE_WIDGET) {
+    $summary = t('Uses tokens: ') . t($settings['token_display_selected'] != '' ? 'Yes' : 'No');
+  }
+
+  return $summary;
+}
+
+/**
+ * Implements hook_field_widget_settings_form().
+ */
+function entity_reference_tree_field_widget_settings_form($field, $instance) {
+  $widget = $instance['widget'];
+  $settings = $widget['settings'];
+  $form = array();
+  
+  if($widget['type'] == TERM_REFERENCE_TREE_WIDGET || $widget['type'] == OG_AUDIENCE_TREE_WIDGET) {
+    $form['start_minimized'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Start minimized'),
+      '#description' => t('Make the tree appear minimized on the form by default'),
+      '#default_value' => $settings['start_minimized'],
+      '#return_value' => 1,
+    );
+    
+    $form['leaves_only'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Leaves only'),
+      '#description' => t("Don't allow the user to select items that have children"),
+      '#default_value' => $settings['leaves_only'],
+      '#return_value' => 1,
+    );
+
+    $form['select_parents'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Select parents automatically'),
+      '#description' => t("When turned on, this option causes the widget to automatically select the ancestors of all selected items. In Leaves Only mode, the parents will be added invisibly to the selected value.  <em>This option is only valid if an unlimited number of values can be selected.</em>"),
+      '#default_value' => $settings['select_parents'],
+      '#element_validate' => array('_entity_reference_tree_select_parents_validate'),
+      '#return_value' => 1,
+    );
+    
+    if ($widget['type'] == TERM_REFERENCE_TREE_WIDGET) {
+
+      if(module_exists('views')) {
+        $views = views_get_all_views();
+        $options = array('' => 'none');
+        
+        foreach($views as $name => $view) {
+          if($view->base_table == 'taxonomy_term_data') {
+            foreach($view->display as $display) {
+              $options["$name:{$display->id}"] = "{$view->human_name}: {$display->display_title}";
+            }
+          }
+        }
+
+        $form['filter_view'] = array(
+          '#type' => 'select',
+          '#title' => 'Filter by view',
+          '#description' => t("Filter the available options based on whether they appear in the selected view."),
+          '#default_value' => $settings['filter_view'],
+          '#options' => $options,
+        );
+      }
+      else {
+        $form['filter_view'] = array(
+          '#type' => 'hidden',
+          '#value' => $settings['filter_view'],
+        );
+      }
+
+      if(module_exists('token') && $widget['type'] == TERM_REFERENCE_TREE_WIDGET) {
+        $form['token_display'] = array(
+          '#type' => 'textarea',
+          '#title' => 'Custom Term Label',
+          '#description' => t("Use tokens to change the term labels for the checkboxes and/or radio buttons.  Leave this field blank to use the term name."),
+          '#default_value' => $settings['token_display'],
+        );
+
+        $form['tokens_list'] = array(
+          '#theme' => 'token_tree',
+          '#token_types' => array('term'),
+        );
+      }
+      else {
+        $form['token_display'] = array(
+          '#type' => 'hidden',
+          '#value' => $settings['token_display'],
+        );
+      }
+      
+    }
+    
+    $form['track_list'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Track list'),
+      '#description' => t(
+          'Track what the user has chosen in a list below the tree.
+           Useful when the tree is large, with many levels.'),
+      '#default_value' => $settings['track_list'],
+      '#return_value' => 1,
+    );
+
+    $form['allowed_ids'] = array(
+      '#type' => 'textfield',
+      '#title' => t("Allowed ID's"),
+      '#description' => t(
+          'Define all ids that are allowed to select. If blank all ids are allowed<br />Format: id1, id2, id3'),
+      '#default_value' => $settings['allowed_ids'],
+      '#return_value' => 1,
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * Makes sure that cardinality is unlimited if auto-select parents is enabled.
+ */
+function _entity_reference_tree_select_parents_validate($element, &$form_state) {
+  if($form_state['values']['instance']['widget']['settings']['select_parents'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
+    // This is pretty wonky syntax for the field name in form_set_error, but it's
+    // correct.
+    form_set_error('field][cardinality', t('You must select an Unlimited number of values if Select Parents Automatically is enabled.'));
+  }
+}
+
+/**
+ * Implements hook_element_info().
+ */
+function entity_reference_tree_element_info() {
+  $types = array(
+    'checkbox_tree' => array(
+      '#input' => true,
+      '#process' => array('entity_reference_tree_process_checkbox_tree'),
+      '#theme' => array('checkbox_tree'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
+    'checkbox_tree_level' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_level'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
+    'checkbox_tree_item' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_item'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
+    'checkbox_tree_label' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_label'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
+    'checkbox_tree_track_list' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_track_list'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
+  );
+  
+  return $types;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function entity_reference_tree_theme() {
+  return array(
+    'checkbox_tree' => array(
+      'render element' => 'element',
+    ),
+    'checkbox_tree_level' => array(
+      'render element' => 'element',
+    ),
+    'checkbox_tree_item' => array(
+      'render element' => 'element',
+    ),
+    'checkbox_tree_label' => array(
+      'render element' => 'element',
+    ),
+    'checkbox_tree_track_list' => array(
+      'render element' => 'element',
+    ),
+    'term_tree_list' => array(
+      'render element' => 'element',
+    ),
+    'oggroup_tree_list' => array(
+      'render element' => 'element',
+    ),
+  );
+}
+
+/**
+ * Process the checkbox_tree widget.
+ * 
+ * This function processes the checkbox_tree widget.
+ * 
+ * @param $element
+ *   The element to be drawn.$element['#field_name']
+ * @param $form_state
+ *   The form state.
+ * 
+ * @return
+ *   The processed element.
+ */
+function entity_reference_tree_process_checkbox_tree($element, $form_state) {
+  if(is_array($form_state)) {
+    if (!empty($element['#max_choices']) && $element['#max_choices'] != '-1')
+      drupal_add_js(array('entity_reference_tree' => array('trees' => array($element['#id'] => array('max_choices'=>$element['#max_choices'])))), 'setting');
+    
+    $hide_ids = array();
+    
+    if($element['#filter_view'] != '') {
+      $hide_ids += _entity_reference_tree_get_allowed_values($element['#filter_view']);
+    }
+
+    if(empty($element['#options'])) {
+      $element['#options_tree'] = module_invoke_all('get_entity_hierarchy', $element, $hide_ids);      
+
+      $required = $element['#required'];
+      if($element['#max_choices'] == 1 && !$required) {
+        array_unshift($element['#options_tree'], (object) array(
+          'id' => '',
+          'name' => 'N/A',
+          'depth' => 0
+          )
+        );
+      }
+      $element['#options'] = _entity_reference_tree_get_options($element['#options_tree'], $hide_ids, $element['#filter_view']);
+    }
+
+    $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
+    $entities = !empty($element['#options_tree']) ? $element['#options_tree'] : array();
+    $max_choices = !empty($element['#max_choices']) ? $element['#max_choices'] : 1;
+    if(array_key_exists('#select_parents', $element) && $element['#select_parents']) {
+      $element['#attributes']['class'][] = 'select-parents';
+    }
+
+    if($max_choices != 1)
+      $element['#tree'] = TRUE;
+
+    $tree = new stdClass;
+    $tree->children = $entities;
+    $element[] = _entity_reference_tree_build_level($element, $tree, $form_state, $value, $max_choices);
+
+    //Add a track list element?
+    $track_list = !empty($element['#track_list']) && $element['#track_list'];
+    if ( $track_list ) {
+      $element[] = array(
+        '#type' => 'checkbox_tree_track_list',
+        '#max_choices' => $max_choices,
+      );
+    }
+  } 
+
+  return $element;
+}
+
+
+/**
+ * Implements hook_get_entity_hierarchy().
+ */
+function entity_reference_tree_get_entity_hierarchy($element, $allowed_ids, $label = '') {
+  $tree = array();
+  switch ($element['#field']) {
+    case TERM_REFERENCE_TREE_WIDGET : $tree = _entity_reference_tree_get_term_hierarchy($element['#allowed_bundles'], $allowed_ids, $element['#filter_view'], $label);break;
+    case OG_AUDIENCE_TREE_WIDGET :    foreach ($element['#allowed_bundles'] as $item) {
+                                        $tree += og_get_hierarchy($item['entity_type'], $item['parent_id'], array('nested' => TRUE, 'entities_allowed' => array($item['entity_type']), 'bundles_allowed' => array($item['bundle_name']), 'ids_allowed' => $allowed_ids));                                          
+                                      }
+                                      break;
+  }
+  return $tree;
+}
+
+
+/**
+ * Returns HTML for a checkbox_tree form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *
+ * @ingroup themeable
+ */
+function theme_checkbox_tree($variables) {
+  $element = $variables['element'];
+  $element['#children'] = drupal_render_children($element);
+  
+  $attributes = array();
+  if (isset($element['#id'])) {
+    $attributes['id'] = $element['#id'];
+  }
+  $attributes['class'][] = 'entity-reference-tree';
+  
+  if(form_get_error($element)) {
+    $attributes['class'][] = 'error';
+  }
+  
+  if(!empty($element['#required'])) {
+    $attributes['class'][] = 'required';
+  }
+
+  if(array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
+    $attributes['class'][] = "entity-reference-tree-start-minimized";
+  }
+
+  $add_track_list = FALSE;
+  if(array_key_exists('#track_list', $element) && $element['#track_list']) {
+    $attributes['class'][] = "entity-reference-tree-track-list-shown";
+    $add_track_list = TRUE;
+  }
+
+  if (!empty($element['#attributes']['class'])) {
+    $attributes['class'] = array_merge($attributes['class'], $element['#attributes']['class']);
+  }
+  return 
+      '<div' . drupal_attributes($attributes) . '>' 
+    . (!empty($element['#children']) ? $element['#children'] : '') 
+    . '</div>';
+}
+
+/**
+ * This function prints a list item with a checkbox and an unordered list
+ * of all the elements inside it.
+ */
+function theme_checkbox_tree_level($variables) {
+  $element = $variables['element'];
+  $sm = '';
+  if(array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
+    $sm = " entity-reference-tree-start-minimized";
+  }
+
+  $max_choices = 0;
+  if(array_key_exists('#max_choices', $element)) {
+    $max_choices = $element['#max_choices'];
+  }
+
+  $output = "<ul class='entity-reference-tree-level$sm'>";
+  $children = element_children($element);
+  foreach($children as $child) {
+    $output .= "<li>";
+    $output .= drupal_render($element[$child]);
+    $output .= "</li>";
+  }
+
+  $output .= "</ul>";
+
+  return $output;
+}
+
+/**
+ * This function prints a single item in the tree, followed by that item's children
+ * (which may be another checkbox_tree_level).
+ */
+function theme_checkbox_tree_item($variables) {
+  $element = $variables['element'];
+  $children = element_children($element);
+  $output = "";
+  
+  if(is_array($children) && count($children) > 1) {
+    $output .= "<div class='entity-reference-tree-button'></div>";
+
+  }
+  elseif(!$element['#leaves_only']) {
+    $output .= "<div class='no-entity-reference-tree-button'></div>";
+  }
+
+  foreach($children as $child) {
+    $output .= drupal_render($element[$child]);
+  }
+  
+  return $output;
+}
+
+/**
+ * This function prints a label that cannot be selected.
+ */
+function theme_checkbox_tree_label($variables) {
+  $element = $variables['element'];
+  $output = "<div class='parent-entity'>" . $element['#value'] . "</div>";
+  return $output;
+}
+
+/**
+ * Shows a list of items that have been checked.
+ * The display happens on the client-side.
+ * Use this function to theme the element's label,
+ * and the "nothing selected" message.
+ * 
+ * @param $variables Variables available for theming. 
+ */
+function theme_checkbox_tree_track_list($variables) {
+  //Should the label be singular or plural? Depends on cardinality of entity field.
+  $nothingselected = t('[Nothing selected]');
+  $label = format_plural(
+      $variables['element']['#max_choices'], 
+      'Selected item (click the item to uncheck it)',
+      'Selected items (click an item to uncheck it)'
+  );
+  $output = 
+    '<div class="entity-reference-track-list-container">
+       <div class="entity-reference-track-list-label">' . $label . '</div>
+       <ul class="entity-reference-tree-track-list"><li class="entity_ref_tree_nothing_message">'.$nothingselected.'</li></ul>
+     </div>';
+     
+  //Add the "Nothing selected" text. To style it, replace it with whatever you want.
+  //Could do this with a file instead.
+  drupal_add_js(
+      'var entityReferenceTreeNothingSelectedText = "' . $nothingselected . '";',
+      'inline'
+  );
+  return $output;
+}
+
+/**
+ * Implements hook_widget_field_form().
+ */
+function entity_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $settings = $instance['widget']['settings'];
+  $path = drupal_get_path('module', 'entity_reference_tree');
+  $value_key = key($field['columns']);
+  $type = $instance['widget']['type'];
+  
+  $default_value = array();
+  foreach($items as $item) {
+    $key = $item[$value_key];
+    if($key === 0) {
+      $default_value[$key] = '0';
+    }
+    else {
+      $default_value[$key] = $key;
+    }
+  }
+
+  $multiple = $field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED;
+  $properties = array();
+
+  if(!array_key_exists('#value', $element))
+    $element['#value'] = array();
+
+  // A switch statement, in case we ever add more widgets to this module.
+  switch($instance['widget']['type']) {
+    case TERM_REFERENCE_TREE_WIDGET:
+      $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
+      $element['#field'] = TERM_REFERENCE_TREE_WIDGET;
+      $element['#attached']['js'] = array($path . '/entity_reference_tree.js');
+      $element['#attached']['css'] = array($path . '/css/entity_reference_tree.css', $path . '/css/term_reference_tree.css');
+      $element['#type'] = 'checkbox_tree';   
+      $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
+      $element['#max_choices'] = $field['cardinality'];
+      $element['#start_minimized'] = $settings['start_minimized'];
+      $element['#leaves_only'] = $settings['leaves_only'];
+      $element['#filter_view'] = module_exists('views') ? $settings['filter_view'] : '';
+      $element['#select_parents'] = $settings['select_parents'];
+      $element['#track_list'] = $settings['track_list'];
+      $element['#allowed_ids'] = ($settings['allowed_ids'] <> '') ? explode(',', str_replace(" ","", $settings['allowed_ids'])) : array();
+      $element['#allowed_bundles']['#parent_id'] = $field['settings']['allowed_values'][0]['parent'];
+      $element['#allowed_bundles']['#vocabulary'] = $voc->vid;
+      $element['#token_display'] = module_exists('token') ? $settings['token_display'] : '';
+      break;
+    case OG_AUDIENCE_TREE_WIDGET:
+      $element['#field'] = OG_AUDIENCE_TREE_WIDGET;
+      $element['#attached']['js'] = array($path . '/entity_reference_tree.js');
+      $element['#attached']['css'] = array($path . '/css/entity_reference_tree.css', $path . '/css/oggroup_reference_tree.css');
+      $element['#type'] = 'checkbox_tree';   
+      $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
+      $element['#max_choices'] = $field['cardinality'];
+      $element['#start_minimized'] = $settings['start_minimized'];
+      $element['#leaves_only'] = $settings['leaves_only'];
+      $element['#filter_view'] = '';//module_exists('views') ? $settings['filter_view'] : '';
+      $element['#select_parents'] = $settings['select_parents'];
+      $element['#track_list'] = $settings['track_list'];
+      $element['#token_display'] = '';//module_exists('token') ? $settings['token_display'] : '';
+      $element['#allowed_ids'] = ($settings['allowed_ids'] <> '') ? explode(',', str_replace(" ","", $settings['allowed_ids'])) : array();
+      $groups_root = entity_get_oggroup_roots();
+      $element['#allowed_bundles'] = array();
+      foreach ($groups_root as $k => $group) {
+        $element['#allowed_bundles'][$k]['entity_type'] = $group->entity_type;
+        $element['#allowed_bundles'][$k]['bundle_name'] = $group->bundle;
+        $element['#allowed_bundles'][$k]['parent_id'] = $group->entity_id;
+      }
+      break;
+  }
+  
+  $element += array(
+    '#value_key' => $value_key,
+    '#element_validate' => array('_entity_reference_tree_widget_validate'),
+    '#properties' => $properties,
+  );
+
+  return $element;
+}
+
+/**
+ * Validates the entity reference tree widgets.
+ * 
+ * This function sets the value of the tree widgets into a form that Drupal
+ * can understand, and also checks if the field is required and has been
+ * left empty.
+ * 
+ * @param $element
+ *   The element to be validated.
+ * @param $form_state
+ *   The state of the form.
+ * 
+ * @return
+ *   The validated element.
+ */
+function _entity_reference_tree_widget_validate(&$element, &$form_state) {
+  $items = _entity_reference_tree_flatten($element, $form_state);
+  $value = array();
+
+  if($element['#max_choices'] != 1) {
+    foreach($items as $child) {
+      if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
+        array_push($value, array($element['#value_key'] => $child['#value']));
+
+        // If the element is leaves only and select parents is on, then automatically
+        // add all the parents of each selected value.
+        if($element['#select_parents'] && $element['#leaves_only']) {
+          foreach($child['#parent_values'] as $parent_id) {
+            if(!in_array(array($element['#value_key'] => $parent_id), $value)) {
+              array_push($value, array($element['#value_key'] => $parent_id));
+            }
+          }
+        }
+      } 
+    }
+  }
+  else {
+    // If it's a tree of radio buttons, they all have the same value, so we can just
+    // grab the value of the first one.
+    if(count($items) > 0) {
+      $child = reset($items);
+      if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
+        array_push($value, array($element['#value_key'] => $child['#value']));
+      }       
+    }
+  }
+  
+  if ($element['#required'] && count($value) == 0) {
+    form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
+  }
+
+  form_set_value($element, $value, $form_state);
+  return $element;
+}
+
+/**
+ * Recursively go through the option tree and return a flat array of
+ * options
+ */
+function _entity_reference_tree_flatten($element, &$form_state) {
+  $output = array();
+  $children = element_children($element);
+  foreach($children as $c) {
+    $child = $element[$c];
+    if(array_key_exists('#type', $child) && ($child['#type'] == 'radio' || $child['#type'] == 'checkbox')) {
+      $output[] = $child;
+    }
+    else {
+      $output = array_merge($output, _entity_reference_tree_flatten($child, $form_state));
+    }
+  }
+  return $output;
+}
+
+/**
+ * Return an array of options.
+ * 
+ * This function converts a list of entities to a key/value list of options.
+ * 
+ * @param $entities
+ *   An array of entity IDs.
+ * @param $allowed
+ *   An array containing the entities allowed by the filter view
+ * @param $filter
+ *   A string defining the view to filter by (only used to detect whether view
+ *   filtering is enabled
+ * 
+ * @return
+ *   A key/value array of entities (name => id)
+ */
+function _entity_reference_tree_get_options(&$entities, &$allowed, $filter) {
+  $options = array();
+
+  if(is_array($entities) && count($entities) > 0) {
+    foreach($entities as $entity) {
+      if(!$filter || (is_array($allowed) && $allowed[$entity->id])) {
+        $options[$entity->id] = $entity->name;
+        $options += _entity_reference_tree_get_options($entity->children, $allowed, $filter);
+      }
+    }
+  }
+  return $options;
+}
+
+/**
+ * Returns an array of allowed values defined by the given view.
+ *
+ * @param $filter
+ *   A view, in the format VIEWNAME:DISPLAYNAME
+ *
+ * @return
+ *   An array of entity IDs (id => true) returned by the view.
+ */
+function _entity_reference_tree_get_allowed_values($filter) {
+  $viewname = "";
+  $displayname = "";
+  $allowed = array();
+
+  if(module_exists('views') && $filter != '') {
+    list($viewname, $displayname) = explode(":", $filter);
+    $view = views_get_view($viewname);
+    if(is_object($view)) {
+      if($view->access($displayname)) {
+        $view->execute_display($displayname);
+        foreach($view->result as $item) {
+          $allowed[$item->id] = true;
+        }
+      }
+      else {
+        drupal_set_message("Cannot access view for entity reference tree widget.", 'warning');
+      }
+    }
+    else {
+      drupal_set_message("Entity reference tree: no view named '$viewname'", 'warning');
+    }
+  }
+
+  return $allowed;
+}
+
+/**
+ * Builds a single item in the entity reference tree widget.
+ *
+ * This function returns an element with a checkbox for a single entity.
+ * If that entity has children, it appends checkbox_tree_level element that
+ * contains the children.  It is meant to be called recursively when the widget
+ * is built.
+ *
+ * @param $element
+ *   The main checkbox_tree element.
+ * @param $entity
+ *   A entity object.  $entity->children should be an array of the entity
+ *   objects that are that entity's children.
+ * @param $form_state
+ *   The form state.
+ * @param $value
+ *   The value of the element.
+ * @param $max_choices
+ *   The maximum number of allowed selections.
+ *
+ * @return
+ *   A completed checkbox_tree_item element, which contains a checkbox and
+ *   possibly a checkbox_tree_level element as well.
+ */
+function _entity_reference_tree_build_item(&$element, &$entity, &$form_state, &$value, $max_choices, $parent_ids) {
+  $start_minimized = FALSE;
+  if(array_key_exists('#start_minimized', $element)) {
+    $start_minimized = $element['#start_minimized'];
+  }
+
+  $leaves_only = FALSE;
+  if(array_key_exists('#leaves_only', $element)) {
+    $leaves_only = $element['#leaves_only'];
+  }
+  
+  $container = array(
+    '#type' => 'checkbox_tree_item',
+    '#max_choices' => $max_choices,
+    '#start_minimized' => $start_minimized,
+    '#leaves_only' => $leaves_only,
+    '#entity_name' => $entity->name,
+  );
+
+  if(!$element['#leaves_only'] || count($entity->children) == 0) {
+    $name = "edit-" . str_replace('_', '-', $element['#field_name']);
+    if (!$element['#allowed_ids'] || in_array($entity->id, $element['#allowed_ids'])) {
+    $e = array(
+      '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
+      '#title' => $entity->name,
+      '#on_value' => $entity->id,
+      '#off_value' => 0,
+      '#return_value' => $entity->id,
+      '#parent_values' => $parent_ids,
+      '#default_value' => isset($value[$entity->id]) ? $entity->id : NULL,
+      '#attributes' => isset($element['#attributes']) ? $element['#attributes'] : NULL,
+      '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+    );
+    } else {
+    $e = array(
+      '#type' => 'markup',
+      '#suffix' => $entity->name,
+    );
+    }
+
+    if($element['#token_display'] != '' && module_exists('token')) {
+      $ent = entity_load($entity->type, $entity->id);
+      $e['#title'] = token_replace($element['#token_display'], array('entity' => $ent), array('clear' => TRUE));
+    }
+
+    if($e['#type'] == 'radio') {
+      $parents_for_id = array_merge($element['#parents'], array($entity->id));
+      $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
+      $e['#parents'] = $element['#parents'];
+    }
+  }
+  else {
+    $e = array(
+      '#type' => 'checkbox_tree_label',
+      '#value' => $entity->name,
+    );
+  }
+
+  $container[$entity->id] = $e;
+  
+
+  if(property_exists($entity, 'children') && count($entity->children) > 0) {
+    $parents = $parent_ids;
+    $parents[] = $entity->id;
+    $container[$entity->id . '-children'] = _entity_reference_tree_build_level($element, $entity, $form_state, $value, $max_choices, $parents);
+  }
+
+  return $container;
+}
+
+/**
+ * Builds a level in the entity reference tree widget.
+ *
+ * This function returns an element that has a number of checkbox_tree_item elements
+ * as children.  It is meant to be called recursively when the widget is built.
+ *
+ * @param $element
+ *   The main checkbox_tree element.
+ * @param $entity
+ *   A entity list object.  $entity->children should be an array of the entity
+ *   objects that are that entity's children.
+ * @param $form_state
+ *   The form state.
+ * @param $value
+ *   The value of the element.
+ * @param $max_choices
+ *   The maximum number of allowed selections.
+ *
+ * @return
+ *   A completed checkbox_tree_level element.
+ */
+function _entity_reference_tree_build_level(&$element, &$entity, &$form_state, &$value, $max_choices, $parent_ids = array()) {
+  $start_minimized = FALSE;
+  if(array_key_exists('#start_minimized', $element)) {
+    $start_minimized = $element['#start_minimized'];
+  }
+
+  $leaves_only = FALSE;
+  if(array_key_exists('#leaves_only', $element)) {
+    $leaves_only = $element['#leaves_only'];
+  }
+  
+  $container = array(
+    '#type' => 'checkbox_tree_level',
+    '#max_choices' => $max_choices,
+    '#start_minimized' => $start_minimized,
+    '#leaves_only' => $leaves_only,
+  );
+
+  foreach($entity->children as $e) {
+    $container[$e->id] = _entity_reference_tree_build_item($element, $e, $form_state, $value, $max_choices, $parent_ids);
+  }
+  
+  return $container;
+}

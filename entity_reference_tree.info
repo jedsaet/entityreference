@@ -1,1 +1,8 @@
-name = Entity Reference Tree
+name = Entity Reference Tree Widget
+description = An expanding/collapsing tree widget for selecting entity in a entities reference field
+package = Other
+
+version = "7.x-dev"
+core = "7.x"
+project = "entity_reference_tree"
+

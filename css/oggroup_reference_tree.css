@@ -1,0 +1,36 @@
+.item-list .field-widget-group-audience-tree ul,
+.block .field-widget-group-audience-tree ul,
+.field-widget-group-audience-tree ul
+{
+  list-style-type: none; 
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+}
+
+.item-list .field-widget-group-audience-tree ul ul,
+.block .field-widget-group-audience-tree ul ul,
+.field-widget-group-audience-tree ul ul
+{
+  margin-left: 1.5em;
+}
+
+.item-list .field-widget-group-audience-tree ul .form-item,
+.block .field-widget-group-audience-tree ul .form-item,
+.field-widget-group-audience-tree ul .form-item {
+  margin: 0;
+  padding: 0;
+}
+
+.field-widget-group-audience-tree .form-item {
+  display: inline-block;
+}
+
+.field-widget-group-audience-tree .disabled {
+  opacity: .5;
+}
+
+.field-widget-group-audience-tree .parent-entity {
+  display: inline-block;
+  font-weight: bold;
+}
