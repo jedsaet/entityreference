@@ -30,6 +30,8 @@ function entity_reference_tree_field_widget_info() {
         'start_minimized' => 0,
         'leaves_only' => 0,
         'filter_view' => '',
+        'filter_view_arg_type' => 0,
+        'filter_view_arg_key' => '',
         'select_parents' => 0,
         'track_list' => 0,
         'allowed_ids' => '',
@@ -48,6 +50,8 @@ function entity_reference_tree_field_widget_info() {
         'start_minimized' => 0,
         'leaves_only' => 0,
         'filter_view' => '',
+        'filter_view_arg_type' => 0,
+        'filter_view_arg_key' => '',
         'select_parents' => 0,
         'track_list' => 0,
         'allowed_ids' => '',
@@ -196,6 +200,7 @@ function entity_reference_tree_field_widget_settings_form($field, $instance) {
       if(module_exists('views')) {
         $views = views_get_all_views();
         $options = array('' => 'none');
+        $options_args = array (0 => 'none', 1 => 'Standard View argument', 'Query url argument');
         
         foreach($views as $name => $view) {
           if($view->base_table == 'taxonomy_term_data') {
@@ -212,11 +217,33 @@ function entity_reference_tree_field_widget_settings_form($field, $instance) {
           '#default_value' => $settings['filter_view'],
           '#options' => $options,
         );
+        $form['filter_view_arg_type'] = array(
+          '#type' => 'select',
+          '#title' => 'Argument view type',
+          '#description' => t("Select the type of argument you want to send to the view"),
+          '#default_value' => $settings['filter_view_arg_type'],
+          '#options' => $options_args,
+        );
+        $form['filter_view_arg_key'] = array(
+          '#type' => 'textfield',
+          '#title' => 'Argument view type',
+          '#description' => t("Select the key or the number of the argument you want to send to the view"),
+          '#default_value' => $settings['filter_view_arg_key'],
+          '#size' => 10,
+        );
       }
       else {
         $form['filter_view'] = array(
           '#type' => 'hidden',
           '#value' => $settings['filter_view'],
+        );
+        $form['filter_view_arg_type'] = array(
+          '#type' => 'hidden',
+          '#value' => $settings['filter_view_arg_type'],
+        );
+        $form['filter_view_arg_key'] = array(
+          '#type' => 'hidden',
+          '#value' => $settings['filter_view_arg_key'],
         );
       }
 
@@ -361,8 +388,9 @@ function entity_reference_tree_process_checkbox_tree($element, $form_state) {
     
     $hide_ids = array();
     
+    // Only available for taxonomy views
     if($element['#filter_view'] != '') {
-      $hide_ids += _entity_reference_tree_get_allowed_values($element['#filter_view']);
+      $hide_ids += _entity_reference_tree_get_allowed_values($element['#filter_view'], $element['#filter_view_arg_type'], $element['#filter_view_arg_key']);
     }
 
     if(empty($element['#options'])) {
@@ -377,7 +405,7 @@ function entity_reference_tree_process_checkbox_tree($element, $form_state) {
           )
         );
       }
-      $element['#options'] = _entity_reference_tree_get_options($element['#options_tree'], $hide_ids, $element['#filter_view']);
+      $element['#options'] = _entity_reference_tree_get_options($element['#options_tree'], $hide_ids, $element['#filter_view'], $element['#filter_view_arg_type'], $element['#filter_view_arg_key']);
     }
 
     $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
@@ -602,6 +630,8 @@ function entity_reference_tree_field_widget_form(&$form, &$form_state, $field, $
       $element['#start_minimized'] = $settings['start_minimized'];
       $element['#leaves_only'] = $settings['leaves_only'];
       $element['#filter_view'] = module_exists('views') ? $settings['filter_view'] : '';
+      $element['#filter_view_arg_type'] = module_exists('views') ? $settings['filter_view_arg_type'] : '';
+      $element['#filter_view_arg_key'] = module_exists('views') ? $settings['filter_view_arg_key'] : '';
       $element['#select_parents'] = $settings['select_parents'];
       $element['#track_list'] = $settings['track_list'];
       $element['#allowed_ids'] = ($settings['allowed_ids'] <> '') ? explode(',', str_replace(" ","", $settings['allowed_ids'])) : array();
@@ -618,7 +648,9 @@ function entity_reference_tree_field_widget_form(&$form, &$form_state, $field, $
       $element['#max_choices'] = $field['cardinality'];
       $element['#start_minimized'] = $settings['start_minimized'];
       $element['#leaves_only'] = $settings['leaves_only'];
-      $element['#filter_view'] = '';//module_exists('views') ? $settings['filter_view'] : '';
+      $element['#filter_view'] = ''; // Has not been implemented for other Views than Taxonomy
+      $element['#filter_view_arg_type'] = 0; // Has not been implemented for other Views than Taxonomy
+      $element['#filter_view_arg_key'] = ''; // Has not been implemented for other Views than Taxonomy
       $element['#select_parents'] = $settings['select_parents'];
       $element['#track_list'] = $settings['track_list'];
       $element['#token_display'] = '';//module_exists('token') ? $settings['token_display'] : '';
@@ -737,7 +769,7 @@ function _entity_reference_tree_get_options(&$entities, &$allowed, $filter) {
 
   if(is_array($entities) && count($entities) > 0) {
     foreach($entities as $entity) {
-      if(!$filter || (is_array($allowed) && $allowed[$entity->id])) {
+      if(!$filter || (is_array($allowed) && isset($allowed[$entity->id]))) {
         $options[$entity->id] = $entity->name;
         $options += _entity_reference_tree_get_options($entity->children, $allowed, $filter);
       }
@@ -748,26 +780,41 @@ function _entity_reference_tree_get_options(&$entities, &$allowed, $filter) {
 
 /**
  * Returns an array of allowed values defined by the given view.
+ * (Works only for Taxonomy Views)
  *
  * @param $filter
  *   A view, in the format VIEWNAME:DISPLAYNAME
  *
  * @return
- *   An array of entity IDs (id => true) returned by the view.
+ *   An array of entity IDs (tid => true) returned by the view.
  */
-function _entity_reference_tree_get_allowed_values($filter) {
+function _entity_reference_tree_get_allowed_values($filter, $arg_type, $arg_value) {
   $viewname = "";
   $displayname = "";
+  $args = "";
   $allowed = array();
+  
+  // Get the arguments for the view
+  if ($arg_type == 1 && is_numeric($arg_value)) $args = arg($arg_value);
+  if ($arg_type == 2 && $arg_value<>'' && isset($_REQUEST[$arg_value])) {
+    if (is_array($_REQUEST[$arg_value])) {
+      foreach ($_REQUEST[$arg_value] as $k => $arg) {
+        $args .= $arg;
+        if($k < count($arg)-1) $args .= ',';
+      }
+    } else {
+      $args = $_REQUEST[$arg_value];
+    }
+  }
 
   if(module_exists('views') && $filter != '') {
     list($viewname, $displayname) = explode(":", $filter);
     $view = views_get_view($viewname);
     if(is_object($view)) {
       if($view->access($displayname)) {
-        $view->execute_display($displayname);
+        $view->execute_display($displayname, $args);
         foreach($view->result as $item) {
-          $allowed[$item->id] = true;
+          $allowed[$item->tid] = true;
         }
       }
       else {
