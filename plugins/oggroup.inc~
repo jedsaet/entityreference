@@ -69,7 +69,7 @@ function _entity_reference_tree_output_list_level(&$element, &$tree) {
         $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
       }
       else {
-        $output .= l($group_entity->$label, 'node/'.$group_entity->nid, array('html' => true));
+        $output .= l($group_entity->$label, 'fred', array('html' => true));
       }
       if(isset($item['children'])) {
         $output .= _entity_reference_tree_output_list_level($element, $item);
