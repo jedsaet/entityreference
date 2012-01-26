@@ -390,7 +390,7 @@ function entity_reference_tree_process_checkbox_tree($element, $form_state) {
     
     // Only available for taxonomy views
     if($element['#filter_view'] != '') {
-      $hide_ids += _entity_reference_tree_get_allowed_values($element['#filter_view'], $element['#filter_view_arg_type'], $element['#filter_view_arg_key']);
+      $hide_ids += _entity_reference_tree_get_allowed_values($element);
     }
 
     if(empty($element['#options'])) {
@@ -405,7 +405,7 @@ function entity_reference_tree_process_checkbox_tree($element, $form_state) {
           )
         );
       }
-      $element['#options'] = _entity_reference_tree_get_options($element['#options_tree'], $hide_ids, $element['#filter_view'], $element['#filter_view_arg_type'], $element['#filter_view_arg_key']);
+      $element['#options'] = _entity_reference_tree_get_options($element['#options_tree'], $hide_ids, $element['#filter_view'], $element['#target_id'], $element['#target_name']);
     }
 
     $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
@@ -601,13 +601,15 @@ function entity_reference_tree_field_widget_form(&$form, &$form_state, $field, $
   $type = $instance['widget']['type'];
   
   $default_value = array();
-  foreach($items as $item) {
-    $key = $item[$value_key];
-    if($key === 0) {
-      $default_value[$key] = '0';
-    }
-    else {
-      $default_value[$key] = $key;
+  if ($items) {
+    foreach($items as $item) {
+      $key = $item[$value_key];
+      if($key === 0) {
+        $default_value[$key] = '0';
+      }
+      else {
+        $default_value[$key] = $key;
+      }
     }
   }
 
@@ -638,6 +640,8 @@ function entity_reference_tree_field_widget_form(&$form, &$form_state, $field, $
       $element['#allowed_bundles']['#parent_id'] = $field['settings']['allowed_values'][0]['parent'];
       $element['#allowed_bundles']['#vocabulary'] = $voc->vid;
       $element['#token_display'] = module_exists('token') ? $settings['token_display'] : '';
+      $element['#target_id'] = 'tid';
+      $element['#target_name'] = 'name';
       break;
     case OG_AUDIENCE_TREE_WIDGET:
       $element['#field'] = OG_AUDIENCE_TREE_WIDGET;
@@ -657,6 +661,8 @@ function entity_reference_tree_field_widget_form(&$form, &$form_state, $field, $
       $element['#allowed_ids'] = ($settings['allowed_ids'] <> '') ? explode(',', str_replace(" ","", $settings['allowed_ids'])) : array();
       $groups_root = entity_get_oggroup_roots();
       $element['#allowed_bundles'] = array();
+      $element['#target_id'] = 'gid';
+      $element['#target_name'] = 'name';
       foreach ($groups_root as $k => $group) {
         $element['#allowed_bundles'][$k]['entity_type'] = $group->entity_type;
         $element['#allowed_bundles'][$k]['bundle_name'] = $group->bundle;
@@ -764,14 +770,14 @@ function _entity_reference_tree_flatten($element, &$form_state) {
  * @return
  *   A key/value array of entities (name => id)
  */
-function _entity_reference_tree_get_options(&$entities, &$allowed, $filter) {
+function _entity_reference_tree_get_options(&$entities, &$allowed, $filter, $id, $name) {
   $options = array();
 
   if(is_array($entities) && count($entities) > 0) {
     foreach($entities as $entity) {
-      if(!$filter || (is_array($allowed) && isset($allowed[$entity->id]))) {
-        $options[$entity->id] = $entity->name;
-        $options += _entity_reference_tree_get_options($entity->children, $allowed, $filter);
+      if(!$filter || (is_array($allowed) && isset($allowed[$entity->{$id}]))) {
+        $options[$entity->{$id}] = $entity->{$name};
+        $options += _entity_reference_tree_get_options($entity->children, $allowed, $filter, $id, $name);
       }
     }
   }
@@ -788,7 +794,11 @@ function _entity_reference_tree_get_options(&$entities, &$allowed, $filter) {
  * @return
  *   An array of entity IDs (tid => true) returned by the view.
  */
-function _entity_reference_tree_get_allowed_values($filter, $arg_type, $arg_value) {
+function _entity_reference_tree_get_allowed_values($element) {
+  $filter = $element['#filter_view'];
+  $arg_type = $element['#filter_view_arg_type'];
+  $arg_value = $element['#filter_view_arg_key'];
+  $id = $element['#target_id'];
   $viewname = "";
   $displayname = "";
   $args = "";
@@ -814,7 +824,7 @@ function _entity_reference_tree_get_allowed_values($filter, $arg_type, $arg_valu
       if($view->access($displayname)) {
         $view->execute_display($displayname, $args);
         foreach($view->result as $item) {
-          $allowed[$item->tid] = true;
+          $allowed[$item->{$id}] = true;
         }
       }
       else {
@@ -869,37 +879,37 @@ function _entity_reference_tree_build_item(&$element, &$entity, &$form_state, &$
     '#max_choices' => $max_choices,
     '#start_minimized' => $start_minimized,
     '#leaves_only' => $leaves_only,
-    '#entity_name' => $entity->name,
+    '#entity_name' => $entity->{$element['#target_name']},
   );
 
   if(!$element['#leaves_only'] || count($entity->children) == 0) {
     $name = "edit-" . str_replace('_', '-', $element['#field_name']);
-    if (!$element['#allowed_ids'] || in_array($entity->id, $element['#allowed_ids'])) {
+    if (!$element['#allowed_ids'] || in_array($entity->{$element['#target_id']}, $element['#allowed_ids'])) {
     $e = array(
       '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
-      '#title' => $entity->name,
-      '#on_value' => $entity->id,
+      '#title' => $entity->{$element['#target_name']},
+      '#on_value' => $entity->{$element['#target_id']},
       '#off_value' => 0,
-      '#return_value' => $entity->id,
+      '#return_value' => $entity->{$element['#target_id']},
       '#parent_values' => $parent_ids,
-      '#default_value' => isset($value[$entity->id]) ? $entity->id : NULL,
+      '#default_value' => isset($value[$entity->{$element['#target_id']}]) ? $entity->{$element['#target_id']} : NULL,
       '#attributes' => isset($element['#attributes']) ? $element['#attributes'] : NULL,
       '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
     );
     } else {
     $e = array(
       '#type' => 'markup',
-      '#suffix' => $entity->name,
+      '#suffix' => $entity->{$element['#target_name']},
     );
     }
 
     if($element['#token_display'] != '' && module_exists('token')) {
-      $ent = entity_load($entity->type, $entity->id);
+      $ent = entity_load($entity->type, $entity->{$element['#target_id']});
       $e['#title'] = token_replace($element['#token_display'], array('entity' => $ent), array('clear' => TRUE));
     }
 
     if($e['#type'] == 'radio') {
-      $parents_for_id = array_merge($element['#parents'], array($entity->id));
+      $parents_for_id = array_merge($element['#parents'], array($entity->{$element['#target_id']}));
       $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
       $e['#parents'] = $element['#parents'];
     }
@@ -911,13 +921,13 @@ function _entity_reference_tree_build_item(&$element, &$entity, &$form_state, &$
     );
   }
 
-  $container[$entity->id] = $e;
+  $container[$entity->{$element['#target_id']}] = $e;
   
 
   if(property_exists($entity, 'children') && count($entity->children) > 0) {
     $parents = $parent_ids;
-    $parents[] = $entity->id;
-    $container[$entity->id . '-children'] = _entity_reference_tree_build_level($element, $entity, $form_state, $value, $max_choices, $parents);
+    $parents[] = $entity->{$element['#target_id']};
+    $container[$entity->{$element['#target_id']} . '-children'] = _entity_reference_tree_build_level($element, $entity, $form_state, $value, $max_choices, $parents);
   }
 
   return $container;
@@ -963,7 +973,7 @@ function _entity_reference_tree_build_level(&$element, &$entity, &$form_state, &
   );
 
   foreach($entity->children as $e) {
-    $container[$e->id] = _entity_reference_tree_build_item($element, $e, $form_state, $value, $max_choices, $parent_ids);
+    $container[$e->{$element['#target_id']}] = _entity_reference_tree_build_item($element, $e, $form_state, $value, $max_choices, $parent_ids);
   }
   
   return $container;

@@ -15,10 +15,12 @@ function theme_oggroup_tree_list($variables) {
     $values = array();
     $gid = $item['gid'];
     $original_tid = $gid;
-    while($gid != 0) {
+    $oldgid = 0;
+    while($gid != 0 && $gid != $oldgid) {
       # Unshift the term onto an array
       array_unshift($values, $gid);
       
+      $oldgid = $gid;
       # Repeat with parent term
       $gid = _oggroup_reference_tree_get_parent($gid);
     }
@@ -58,7 +60,7 @@ function _entity_reference_tree_output_list_level(&$element, &$tree) {
     foreach($tree['children'] as &$item) {
       $group = og_load($item['gid']);
       $info = entity_get_info($group->entity_type);
-      $group_entity = og_load_entity_from_group($item['gid']);
+      $group_entity = og_load_entity_from_group($item['gid']);      
       $id = $info['entity keys']['id'];
       $label = $info['entity keys']['label'];
       $uri = $group->entity_type . '/' . $group_entity->$id;
@@ -69,7 +71,8 @@ function _entity_reference_tree_output_list_level(&$element, &$tree) {
         $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
       }
       else {
-        $output .= l($group_entity->$label, 'node/'.$group_entity->nid, array('html' => true));
+        $uri = entity_uri($group->entity_type, $group_entity);
+        $output .= l($group_entity->$label, $uri['path'], array('html' => true));
       }
       if(isset($item['children'])) {
         $output .= _entity_reference_tree_output_list_level($element, $item);
