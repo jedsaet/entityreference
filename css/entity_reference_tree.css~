@@ -34,6 +34,7 @@
 /*
  * Styles for track list of selected options.
  */
+
 .entity-reference-tree-track-list li {
   list-style-image: url("../images/bullet_delete.png");
   margin-left: 30px;
@@ -59,6 +60,7 @@
 /*
  * Styles for display element
  */
+
 .field-type-taxonomy-entity-reference .selected {
   font-weight: bold;
 }

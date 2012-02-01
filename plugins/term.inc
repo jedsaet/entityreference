@@ -91,7 +91,7 @@ function _term_reference_tree_output_list_level(&$element, &$tree) {
  */
 function _entity_reference_tree_get_term_hierarchy($array, &$allowed, $filter, $label) {
   $vid = $array['#vocabulary'];
-  $terms = _entity_reference_tree_get_term_children($array['#parent_id'], $vid);
+  $terms = _term_reference_tree_get_term_children($array['#parent_id'], $vid);
   
   $result = array();
 
@@ -99,11 +99,10 @@ function _entity_reference_tree_get_term_hierarchy($array, &$allowed, $filter, $
     foreach($allowed as $k => $v) {
       if(array_key_exists($k, $terms)) {
         $term =& $terms[$k];
-        $children = _entity_reference_tree_get_term_hierarchy(array('#parent_id' => $term->id, '#vocabulary' => $vid), $allowed, $filter, $label);
+        $children = _entity_reference_tree_get_term_hierarchy(array('#parent_id' => $term->tid, '#vocabulary' => $vid), $allowed, $filter, $label);
         if(is_array($children)) {
           $term->children = $children;
         }
-        $term->TEST = $label;
         array_push($result, $term);
       }      
     }
@@ -111,11 +110,10 @@ function _entity_reference_tree_get_term_hierarchy($array, &$allowed, $filter, $
   else {
     foreach($terms as &$term) {
       if($filter == '' || array_key_exists($term->tid, $allowed)) {
-        $children = _entity_reference_tree_get_term_hierarchy(array('#parent_id' => $term->id, '#vocabulary' => $vid), $allowed, $filter, $label);
+        $children = _entity_reference_tree_get_term_hierarchy(array('#parent_id' => $term->tid, '#vocabulary' => $vid), $allowed, $filter, $label);
         if(is_array($children)) {
           $term->children = $children;
         }
-        $term->TEST = $label;
         array_push($result, $term);
       }
     }
@@ -135,16 +133,15 @@ function _entity_reference_tree_get_term_hierarchy($array, &$allowed, $filter, $
  * @return
  *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
  */
-function _entity_reference_tree_get_term_children($tid, $vid) {
+function _term_reference_tree_get_term_children($tid, $vid) {
+//  $q = db_select('taxonomy_term_data', 't')->
   //Should this use the new DB layer?
   $q = db_query("select d.tid, d.name from {taxonomy_term_data} d, {taxonomy_term_hierarchy} h where d.vid = :vid and d.tid = h.tid and h.parent = :tid order by weight, name, tid", array(':vid' => $vid, ':tid'  => $tid));
 
   $terms = array();
   
   foreach($q as $term) {
-    $term->id = $term->tid;
-    unset($term->tid);
-    $terms[$term->id] = (object) $term;
+    $terms[$term->tid] = (object) $term;
   }
 
   return $terms;

@@ -43,14 +43,14 @@ function theme_oggroup_tree_list($variables) {
     }
   }
   
-  return _entity_reference_tree_output_list_level($element, $tree);
+  return _oggroup_reference_tree_output_list_level($element, $tree);
 }
 
 /**
  * Helper function to output a single level of the term reference tree
  * display.
  */
-function _entity_reference_tree_output_list_level(&$element, &$tree) {
+function _oggroup_reference_tree_output_list_level(&$element, &$tree) {
   if(isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
     $output = '<ul class="term">';
     $settings = $element['#display']['settings'];
@@ -75,7 +75,7 @@ function _entity_reference_tree_output_list_level(&$element, &$tree) {
         $output .= l($group_entity->$label, $uri['path'], array('html' => true));
       }
       if(isset($item['children'])) {
-        $output .= _entity_reference_tree_output_list_level($element, $item);
+        $output .= _oggroup_reference_tree_output_list_level($element, $item);
       }
       $output .= "</li>";
     }
