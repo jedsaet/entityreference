@@ -1,4 +1,9 @@
 <?php
+/**
+ * @file
+ * The entity.inc is used to handle EntityReference hierarchy
+ *
+ */
 
 /**
  * Themes the entity tree display (as opposed to the select widget).
@@ -10,29 +15,29 @@ function theme_entity_tree_list($variables) {
   $tree = array();
 
   # For each selected entity:
-  foreach($data as $item) {
+  foreach ($data as $item) {
     # Loop if the entity ID is not zero:
     $values = array();
     $target_id = $item['target_id'];
     $original_target_id = $target_id;
-    while($target_id != 0) {
+    while ($target_id != 0) {
       # Unshift the entity onto an array
       array_unshift($values, $target_id);
       
       # Repeat with parent entity
-      $target_id = _term_reference_tree_get_parent($target_id);
+      $target_id = _entity_reference_tree_get_term_parent($target_id);
     }
     
     $current =& $tree;
     # For each entity in the above array:
-    foreach($values as $target_id) {
-      # current[children][entity_id] = new array
-      if(!isset($current['children'][$target_id])) {
+    foreach ($values as $target_id) {
+      # current['children']['entity_id'] = new array
+      if (!isset($current['children'][$target_id])) {
         $current['children'][$target_id] = array('selected' => FALSE);
       }
       
-      # If this is the last value in the array, tree[children][entity_id][selected] = true
-      if($target_id == $original_target_id) {
+      # If this is the last value in the array, tree['children']['entity_id']['selected'] = TRUE
+      if ($target_id == $original_target_id) {
         $current['children'][$target_id]['selected'] = TRUE;
       }
 
@@ -41,34 +46,34 @@ function theme_entity_tree_list($variables) {
     }
   }
   
-  return _entity_reference_tree_output_list_level($element, $tree);
+  return _entity_reference_entity_tree_output_list_level($element, $tree);
 }
 
 /**
  * Helper function to output a single level of the entity reference tree
  * display.
  */
-function _entity_reference_tree_output_list_level(&$element, &$tree) {
-  if(isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
+function _entity_reference_entity_tree_output_list_level(&$element, &$tree) {
+  if (isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
     $output = '<ul class="entity">';
     $settings = $element['#display']['settings'];
     $tokens_selected = $settings['token_display_selected'];
     $tokens_unselected = ($settings['token_display_unselected'] != '') ? $settings['token_display_unselected'] : $tokens_selected;
 
-    foreach($tree['children'] as &$item) {
+    foreach ($tree['children'] as &$item) {
       $entity = taxonomy_term_load($item['target_id']);
       $uri = taxonomy_term_uri($entity);
       $class = $item['selected'] ? 'selected' : 'unselected';
       $output .= "<li class='$class'>";
-      if($tokens_selected != '' && module_exists('token')) {
+      if ($tokens_selected != '' && module_exists('token')) {
         $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;
         $output .= token_replace($replace, array('entity' => $entity), array('clear' => TRUE));
       }
       else {
-        $output .= l($entity->name, $uri['path'], array('html' => true));
+        $output .= l($entity->name, $uri['path'], array('html' => TRUE));
       }
-      if(isset($item['children'])) {
-        $output .= _entity_reference_tree_output_list_level($element, $item);
+      if (isset($item['children'])) {
+        $output .= _entity_reference_entity_tree_output_list_level($element, $item);
       }
       $output .= "</li>";
     }
@@ -91,16 +96,16 @@ function _entity_reference_tree_output_list_level(&$element, &$tree) {
  */
 function _entity_reference_tree_get_entity_hierarchy($array, &$allowed, $filter, $label) {
   $vid = $array['#vocabulary'];
-  $entities = _entity_reference_tree_get_term_children($array['#parent_id'], $vid);
+  $entities = _entity_reference_tree_get_entity_children($array['#parent_id'], $vid);
   
   $result = array();
 
-  if($filter != '') {
-    foreach($allowed as $k => $v) {
-      if(array_key_exists($k, $entities)) {
+  if ($filter != '') {
+    foreach ($allowed as $k => $v) {
+      if (array_key_exists($k, $entities)) {
         $entity =& $entities[$k];
         $children = _entity_reference_tree_get_entity_hierarchy(array('#parent_id' => $entity->target_id, '#vocabulary' => $vid), $allowed, $filter, $label);
-        if(is_array($children)) {
+        if (is_array($children)) {
           $entity->children = $children;
         }
         array_push($result, $entity);
@@ -108,10 +113,10 @@ function _entity_reference_tree_get_entity_hierarchy($array, &$allowed, $filter,
     }
   }
   else {
-    foreach($entities as &$entity) {
-      if($filter == '' || array_key_exists($entity->target_id, $allowed)) {
+    foreach ($entities as &$entity) {
+      if ($filter == '' || array_key_exists($entity->target_id, $allowed)) {
         $children = _entity_reference_tree_get_entity_hierarchy(array('#parent_id' => $entity->target_id, '#vocabulary' => $vid), $allowed, $filter, $label);
-        if(is_array($children)) {
+        if (is_array($children)) {
           $entity->children = $children;
         }
         array_push($result, $entity);
@@ -133,13 +138,13 @@ function _entity_reference_tree_get_entity_hierarchy($array, &$allowed, $filter,
  * @return
  *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
  */
-function _entity_reference_tree_get_term_children($tid, $vid) {
+function _entity_reference_tree_get_entity_children($tid, $vid) {
   //Should this use the new DB layer?
   $q = db_query("select d.tid, d.name from {taxonomy_term_data} d, {taxonomy_term_hierarchy} h where d.vid = :vid and d.tid = h.tid and h.parent = :tid order by weight, name, tid", array(':vid' => $vid, ':tid'  => $tid));
 
   $terms = array();
   
-  foreach($q as $term) {
+  foreach ($q as $term) {
     $term->target_id = $term->tid;
     unset($term->tid);
     $terms[$term->target_id] = (object) $term;

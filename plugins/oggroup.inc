@@ -1,4 +1,9 @@
 <?php
+/**
+ * @file
+ * The oggroup.inc is used to handle OG Group Audience hierarchy
+ *
+ */
 
 /**
  * Themes the OG group tree display (as opposed to the select widget).
@@ -10,31 +15,31 @@ function theme_oggroup_tree_list($variables) {
   $tree = array();
 
   # For each selected term:
-  foreach($data as $item) {
+  foreach ($data as $item) {
     # Loop if the term ID is not zero:
     $values = array();
     $gid = $item['gid'];
     $original_tid = $gid;
     $oldgid = 0;
-    while($gid != 0 && $gid != $oldgid) {
+    while ($gid != 0 && $gid != $oldgid) {
       # Unshift the term onto an array
       array_unshift($values, $gid);
       
       $oldgid = $gid;
       # Repeat with parent term
-      $gid = _oggroup_reference_tree_get_parent($gid);
+      $gid = _entity_reference_oggroup_tree_get_parent($gid);
     }
 
     $current =& $tree;
     # For each term in the above array:
-    foreach($values as $gid) {
-      # current[children][gid] = new array
-      if(!isset($current['children'][$gid])) {
+    foreach ($values as $gid) {
+      # current['children']['gid'] = new array
+      if (!isset($current['children'][$gid])) {
         $current['children'][$gid] = array('selected' => FALSE);
       }
       
-      # If this is the last value in the array, tree[children][gid][selected] = true
-      if($gid == $original_tid) {
+      # If this is the last value in the array, tree['children']['gid']['selected'] = TRUE
+      if ($gid == $original_tid) {
         $current['children'][$gid]['selected'] = TRUE;
       }
 
@@ -43,21 +48,21 @@ function theme_oggroup_tree_list($variables) {
     }
   }
   
-  return _oggroup_reference_tree_output_list_level($element, $tree);
+  return _entity_reference_oggroup_tree_output_list_level($element, $tree);
 }
 
 /**
  * Helper function to output a single level of the term reference tree
  * display.
  */
-function _oggroup_reference_tree_output_list_level(&$element, &$tree) {
-  if(isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
+function _entity_reference_oggroup_tree_output_list_level(&$element, &$tree) {
+  if (isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
     $output = '<ul class="term">';
     $settings = $element['#display']['settings'];
     $tokens_selected = $settings['token_display_selected'];
     $tokens_unselected = ($settings['token_display_unselected'] != '') ? $settings['token_display_unselected'] : $tokens_selected;
 
-    foreach($tree['children'] as &$item) {
+    foreach ($tree['children'] as &$item) {
       $group = og_load($item['gid']);
       $info = entity_get_info($group->entity_type);
       $group_entity = og_load_entity_from_group($item['gid']);      
@@ -66,16 +71,16 @@ function _oggroup_reference_tree_output_list_level(&$element, &$tree) {
       $uri = $group->entity_type . '/' . $group_entity->$id;
       $class = $item['selected'] ? 'selected' : 'unselected';
       $output .= "<li class='$class'>";
-      if($tokens_selected != '' && module_exists('token')) {
+      if ($tokens_selected != '' && module_exists('token')) {
         $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;
         $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
       }
       else {
         $uri = entity_uri($group->entity_type, $group_entity);
-        $output .= l($group_entity->$label, $uri['path'], array('html' => true));
+        $output .= l($group_entity->$label, $uri['path'], array('html' => TRUE));
       }
-      if(isset($item['children'])) {
-        $output .= _oggroup_reference_tree_output_list_level($element, $item);
+      if (isset($item['children'])) {
+        $output .= _entity_reference_oggroup_tree_output_list_level($element, $item);
       }
       $output .= "</li>";
     }
@@ -85,11 +90,15 @@ function _oggroup_reference_tree_output_list_level(&$element, &$tree) {
   }
 }
 
-function _oggroup_reference_tree_get_parent($gid) {
-  $q = db_query("select h.group_audience_gid from {field_data_group_audience} h inner join {og} og ON (og.etid=h.entity_id AND og.entity_type=h.entity_type) where og.gid = :gid limit 1", array(':gid'  => $gid));
+function _entity_reference_oggroup_tree_get_parent($gid) {
+  $q = db_select('field_data_group_audience', 'h');
+  $q->innerJoin('og', 'og', 'og.etid = h.entity_id AND og.entity_type = h.entity_type');
+  $q->condition('og.gid', $gid);
+  $q->addField('h', 'group_audience_gid');
+  $groups = $q->execute()->fetchAll();
 
   $g = 0;
-  foreach($q as $group) {
+  foreach ($groups as $group) {
     $g = $group->group_audience_gid;
   }
 
@@ -103,7 +112,7 @@ function _oggroup_reference_tree_get_parent($gid) {
  * @return
  *   An array of all group entities
  */
-function entity_get_oggroup_roots() {
+function _entity_reference_oggroup_get_oggroup_roots() {
   $query1 = db_select('field_data_group_group', 'g')->fields('g', array('entity_id'));
   $query1->join('field_data_group_audience', 'ga', 'ga.entity_id= g.entity_id AND ga.entity_type = g.entity_type');
   $query1->where('g1.entity_id = g.entity_id');
