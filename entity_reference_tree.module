@@ -1,13 +1,8 @@
 <?php
-/**
- * @file
- * Declare all Entity types that have a Tree display
- *
- */
 
-require_once drupal_get_path('module', 'entity_reference_tree') . '/plugins/entity.inc';
-require_once drupal_get_path('module', 'entity_reference_tree') . '/plugins/term.inc';
-require_once drupal_get_path('module', 'entity_reference_tree') . '/plugins/oggroup.inc';
+require_once (drupal_get_path('module', 'entity_reference_tree') . '/plugins/entity.inc');
+require_once (drupal_get_path('module', 'entity_reference_tree') . '/plugins/term.inc');
+require_once (drupal_get_path('module', 'entity_reference_tree') . '/plugins/oggroup.inc');
 
 
 /**
@@ -35,7 +30,7 @@ function entity_reference_tree_field_widget_info() {
       'description' => t('Display the list of referenceable entities as a tree view selection.'),
       'field types' => array('entityreference'),
       'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM, 
         'default value' => FIELD_BEHAVIOR_DEFAULT,
       ),
       'settings' => array(
@@ -49,13 +44,13 @@ function entity_reference_tree_field_widget_info() {
         'allowed_ids' => '',
         'token_display' => '',
       ),
-    ),
+    ),  
     TERM_REFERENCE_TREE_WIDGET => array(
       'label' => 'Term reference tree',
       'description' => t('Display the list of referenceable terms as a tree view selection.'),
       'field types' => array('taxonomy_term_reference'),
       'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM, 
         'default value' => FIELD_BEHAVIOR_DEFAULT,
       ),
       'settings' => array(
@@ -75,7 +70,7 @@ function entity_reference_tree_field_widget_info() {
       'description' => t('Display the list of referenceable groups as a tree view selection.'),
       'field types' => array('group'),
       'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM, 
         'default value' => FIELD_BEHAVIOR_DEFAULT,
       ),
       'settings' => array(
@@ -89,7 +84,7 @@ function entity_reference_tree_field_widget_info() {
         'allowed_ids' => '',
         'token_display' => '',
       ),
-    ),
+    ),     
   );
 }
 
@@ -216,7 +211,7 @@ function entity_reference_tree_field_widget_settings_form($field, $instance) {
   $widget = $instance['widget'];
   $settings = $widget['settings'];
   $form = array();
-
+  
   if ($widget['type'] == TERM_REFERENCE_TREE_WIDGET || $widget['type'] == OG_AUDIENCE_TREE_WIDGET) {
     $form['start_minimized'] = array(
       '#type' => 'checkbox',
@@ -242,14 +237,14 @@ function entity_reference_tree_field_widget_settings_form($field, $instance) {
       '#element_validate' => array('_entity_reference_tree_select_parents_validate'),
       '#return_value' => 1,
     );
-
+    
     if ($widget['type'] == TERM_REFERENCE_TREE_WIDGET) {
 
       if (module_exists('views')) {
         $views = views_get_all_views();
         $options = array('' => 'none');
         $options_args = array(0 => 'none', 1 => 'Standard View argument', 'Query url argument');
-
+        
         foreach ($views as $name => $view) {
           if ($view->base_table == 'taxonomy_term_data') {
             foreach ($view->display as $display) {
@@ -299,7 +294,7 @@ function entity_reference_tree_field_widget_settings_form($field, $instance) {
         $form['token_display'] = array(
           '#type' => 'textarea',
           '#title' => 'Custom Term Label',
-          '#description' => t("Use tokens to change the term labels for the checkboxes and/or radio buttons. Leave this field blank to use the term name."),
+          '#description' => t("Use tokens to change the term labels for the checkboxes and/or radio buttons.  Leave this field blank to use the term name."),
           '#default_value' => $settings['token_display'],
         );
 
@@ -314,8 +309,9 @@ function entity_reference_tree_field_widget_settings_form($field, $instance) {
           '#value' => $settings['token_display'],
         );
       }
+      
     }
-
+    
     $form['track_list'] = array(
       '#type' => 'checkbox',
       '#title' => t('Track list'),
@@ -702,7 +698,12 @@ function entity_reference_tree_field_widget_form(&$form, &$form_state, $field, $
       $element['#target_name'] = 'name';
       break;
     case TERM_REFERENCE_TREE_WIDGET:
-      $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
+      if (isset($field['settings']['allowed_values'][0]['vocabulary'])) {
+        $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
+      }
+      else {
+        break;
+      }
       $element['#field'] = TERM_REFERENCE_TREE_WIDGET;
       $element['#attached']['js'] = array($path . '/entity_reference_tree.js');
       $element['#attached']['css'] = array($path . '/css/entity_reference_tree.css', $path . '/css/term_reference_tree.css');

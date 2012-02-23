@@ -140,7 +140,7 @@ function _entity_reference_tree_get_entity_hierarchy($array, &$allowed, $filter,
  */
 function _entity_reference_tree_get_entity_children($tid, $vid) {
   //Should this use the new DB layer?
-  $q = db_query("select d.tid, d.name from {taxonomy_term_data} d, {taxonomy_term_hierarchy} h where d.vid = :vid and d.tid = h.tid and h.parent = :tid order by weight, name, tid", array(':vid' => $vid, ':tid'  => $tid));
+  $q = db_query("SELECT d.tid, d.name FROM {taxonomy_term_data} d INNER JOIN {taxonomy_term_hierarchy} h ON d.tid = h.tid WHERE d.vid = :vid AND h.parent = :tid ORDER BY d.weight, d.name, d.tid", array(':vid' => $vid, ':tid'  => $tid));
 
   $terms = array();
   
