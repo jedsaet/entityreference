@@ -1,0 +1,8 @@
+name = OG Group Reference Tree
+description = An expanding/collapsing tree widget for selecting OG group in a group audience field
+package = Other
+core = 7.x
+
+dependencies[] = og
+dependencies[] = og_tree_views
+dependencies[] = entity_reference_tree

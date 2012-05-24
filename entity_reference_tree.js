@@ -1,122 +1,135 @@
 (function($) {
-  $(function() {
-    // Bind the entity expand/contract button to slide toggle the list underneath.
-    $('.entity-reference-tree-button').click(function() {
-      $(this).toggleClass('entity-reference-tree-collapsed');
-      $(this).siblings('ul').slideToggle('fast');
-    });
-
-    // An expand all button (unimplemented)
-    /*
-    $('.expandbutton').click(function() {
-      $(this).siblings('.entity-reference-tree-button').trigger('click');
-    });
-    */
-
-
-    $('.entity-reference-tree').each(function() {
-      // On page load, check whether the maximum number of choices is already selected.
-      // If so, disable the other options.
-      var tree = $(this);
-      checkMaxChoices(tree, false);
-      $(this).find('input[type=checkbox]').change(function() {
-        checkMaxChoices(tree, $(this));
+  Drupal.behaviors.entityReferenceTree = {
+    attach: function(context, settings) {
+      // Bind the entity expand/contract button to slide toggle the list underneath.
+      $('.entity-reference-tree-button', context).click(function() {
+        $(this).toggleClass('entity-reference-tree-collapsed');
+        $(this).siblings('ul').slideToggle('fast');
       });
 
-      // On page load, check if the start minimized option is selected.  If so,
-      // minimize each tree, except for lists that contain a checked box.   
-      if($(this).hasClass('entity-reference-tree-start-minimized')) {
-        $(this).find('.entity-reference-tree-button').each(function() {
-          // If no sibling <ul>'s contain a checked checkbox, add the
-          // entity-reference-tree-collapsed class and hide the <ul>.
-          if($(this).siblings('ul').has('input[type=checkbox]:checked').size() == 0 &&
-            $(this).siblings('ul').has('input[type=radio]:checked').size() == 0) {
-            $(this).addClass('entity-reference-tree-collapsed');
-            $(this).siblings('ul').hide();
-          }
-        });
-      }
-      
-      //On page load, check if the user wants a track list. If so, add the 
-      //currently selected items to it.
-      if($(this).hasClass('entity-reference-tree-track-list-shown')) {
-        var track_list_container = $('<ul class="entity-reference-tree-track-list"></ul>').appendTo($('.entity-reference-track-list-container',this));
-        
-        //Var to track whether using checkboxes or radio buttons.
-        var input_type =
-          ( $(this).has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
-          
-        //Find all the checked controls.
-        var checked_controls = $(this).find('input[type=' + input_type + ']:checked');
+      // An expand all button (unimplemented)
+      /*
+      $('.expandbutton').click(function() {
+        $(this).siblings('.entity-reference-tree-button').trigger('click');
+      });
+      */
 
-        //Get their labels.
-        var labels = checked_controls.next();
-        var label_element;
-        
-        //For each label of the checked boxes, add item to the track list.
-        labels.each(function(index) {
-          label_element = $(labels[index]);
-          addItemToTrackList(
+
+      $('.entity-reference-tree', context).each(function() {
+        // On page load, check whether the maximum number of choices is already selected.
+        // If so, disable the other options.
+        var tree = $(this);
+        checkMaxChoices(tree, false);
+        $(this).find('input[type=checkbox]').change(function() {
+          checkMaxChoices(tree, $(this));
+        });
+
+        //On page load, check if the user wants a track list. If so, add the 
+        //currently selected items to it.
+        if($(this).hasClass('entity-reference-tree-track-list-shown')) {
+          var track_list_container = $(this).find('.entity-reference-tree-track-list');
+          
+          //Var to track whether using checkboxes or radio buttons.
+          var input_type =
+            ( $(this).has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
+            
+          //Find all the checked controls.
+          var checked_controls = $(this).find('input[type=' + input_type + ']:checked');
+
+          //Get their labels.
+          var labels = checked_controls.next();
+          var label_element;
+          
+          //For each label of the checked boxes, add item to the track list.
+          labels.each(function(index) {
+            label_element = $(labels[index]);
+            addItemToTrackList(
               track_list_container,         //Where to add new item.
               label_element.html(),         //Text of new item.
               $(label_element).attr('for'), //Id of control new item is for.
               input_type                    //checkbox or radio
-          );
-        }); //End labels.each
-        
-        //Show "nothing selected" message, if needed.
-        showNothingSelectedMessage(track_list_container);
-        
-        //Event - when an element on the track list is clicked on:
-        //  1. Delete it.
-        //  2. Uncheck the associated checkbox.
-        //The event is bound to the track list container, not each element.
-        $(track_list_container).click(function(event){
-          //Remove the "nothing selected" message if showing - add it later if needed.
-          removeNothingSelectedMessage(track_list_container);
-          var event_target = $(event.target);
-          var control_id = event_target.data('control_id');
+            );
+          }); //End labels.each
+          
+          //Show "nothing selected" message, if needed.
+          showNothingSelectedMessage(track_list_container);
+          
+          //Event - when an element on the track list is clicked on:
+          //  1. Delete it.
+          //  2. Uncheck the associated checkbox.
+          //The event is bound to the track list container, not each element.
+          $(track_list_container).click(function(event){
+            //Remove the "nothing selected" message if showing - add it later if needed.
+            //removeNothingSelectedMessage(track_list_container);
+            var event_target = $(event.target);
+            var control_id = event_target.data('control_id');
 
-          if(control_id) {
-            event_target.remove();
+            if(control_id) {
+              event_target.remove();
 
-            var checkbox = $('#' + control_id);
-            checkbox.removeAttr('checked');
-            checkMaxChoices(tree, checkbox);
+              var checkbox = $('#' + control_id);
+              checkbox.removeAttr('checked');
+              checkMaxChoices(tree, checkbox);
 
-            //Show "nothing selected" message, if needed.
-            showNothingSelectedMessage(track_list_container);
-          }
-        });
-        
-        //Change track list when controls are clicked.
-        $(this).find('.form-' + input_type).click(function(event){
-          //Remove the "nothing selected" message if showing - add it later if needed.
-          removeNothingSelectedMessage(track_list_container);
-          var event_target = $(event.target);
-          var control_id = event_target.attr('id');
-          if ( event_target.attr('checked') ) {
-            //Control checked - add item to the track list.
-            label_element = event_target.next();
-            addItemToTrackList(
+              //Show "nothing selected" message, if needed.
+              showNothingSelectedMessage(track_list_container);
+            }
+          });
+          
+          //Change track list when controls are clicked.
+          $(this).find('.form-' + input_type).change(function(event){
+            //Remove the "nothing selected" message if showing - add it later if needed.
+            removeNothingSelectedMessage(track_list_container);
+            var event_target = $(event.target);
+            var control_id = event_target.attr('id');
+            if ( event_target.attr('checked') ) {
+              //Control checked - add item to the track list.
+              label_element = event_target.next();
+              addItemToTrackList(
                 track_list_container,         //Where to add new item.
                 label_element.html(),         //Text of new item.
                 $(label_element).attr('for'), //Id of control new item is for.
                 input_type                    //checkbox or radio
-            );
-          }
-          else {
-            //Checkbox unchecked. Remove from the track list.
-            $('#' + control_id + '_list').remove();
-          }
-          
-          //Show "nothing selected" message, if needed.
-          showNothingSelectedMessage(track_list_container);
-        }); //End process checkbox changes.
-      } //End Want a track list.
-      
-    });
-  });
+              );
+            }
+            else {
+              //Checkbox unchecked. Remove from the track list.
+              $('#' + control_id + '_list').remove();
+            }
+            
+            //Show "nothing selected" message, if needed.
+            showNothingSelectedMessage(track_list_container);
+          }); //End process checkbox changes.
+        } //End Want a track list.
+        
+        //On page load, check if the user wants a cascading selection.
+        if($(this).hasClass('entity-reference-tree-cascading-selection')) {
+
+          //Check children when checkboxes are clicked.
+          $(this).find('.form-checkbox').change(function(event) {
+            var event_target = $(event.target);
+            var control_id = event_target.attr('id');
+            var children = event_target.parent().next().children().children('div.form-type-checkbox').children('input[id^="' + control_id + '-children"]');
+            if(event_target.attr('checked')) {
+              //Checkbox checked - check children if none were checked.
+              if(!$(children).filter(':checked').length) {
+                $(children).click().trigger('change');
+              }
+            }
+            else {
+              //Checkbox unchecked. Uncheck children if all were checked.
+              if(!$(children).not(':checked').length) {
+                $(children).click().trigger('change');
+              }
+            }
+
+          });
+          //End process checkbox changes.
+        } //End Want a cascading checking.
+
+      });
+    }
+  };
   
   /**
    * Add a new item to the track list. 
@@ -132,7 +145,7 @@
    * @param control_type Control type - 'checkbox' or 'radio'.
    */
   function addItemToTrackList(track_list_container, item_text, control_id, control_type) {
-    var new_item = $('<li>' + item_text + '</li>');
+    var new_item = $('<li class="track-item">' + item_text + '</li>');
     new_item.data('control_id', control_id);
     
     //Add an id for easy finding of the item.
@@ -249,8 +262,24 @@
 
     if(checkbox) {
       if(item.hasClass('select-parents')) {
+        var track_list_container = item.find('.entity-reference-tree-track-list');
+        var input_type =
+            ( item.has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
+            
         if(checkbox.attr('checked')) {
-          checkbox.parents('ul.entity-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').attr('checked', checkbox.attr('checked'));
+          checkbox.parents('ul.entity-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').each(function() {
+            $(this).attr('checked', checkbox.attr('checked'));
+            
+            if(track_list_container) {
+              label_element = $(this).next();
+              addItemToTrackList(
+                track_list_container,         //Where to add new item.
+                label_element.html(),         //Text of new item.
+                $(label_element).attr('for'), //Id of control new item is for.
+                input_type                    //checkbox or radio
+              );
+            }
+          });
         }
       }
     }

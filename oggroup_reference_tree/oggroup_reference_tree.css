@@ -1,0 +1,47 @@
+.item-list .field-widget-oggroup-reference-tree ul,
+.block .field-widget-oggroup-reference-tree ul,
+.field-widget-oggroup-reference-tree ul
+{
+  list-style-type: none; 
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+}
+
+.item-list .field-widget-oggroup-reference-tree ul ul,
+.block .field-widget-oggroup-reference-tree ul ul,
+.field-widget-oggroup-reference-tree ul ul
+{
+  margin-left: 1.5em;
+}
+
+.item-list .field-widget-oggroup-reference-tree ul .form-item,
+.block .field-widget-oggroup-reference-tree ul .form-item,
+.field-widget-oggroup-reference-tree ul .form-item {
+  margin: 0;
+  padding: 0;
+}
+
+.field-widget-oggroup-reference-tree .form-item {
+  display: inline-block;
+  *display: inline;
+  zoom: 1;
+}
+
+.field-widget-oggroup-reference-tree .disabled {
+  opacity: .5;
+}
+
+.field-widget-oggroup-reference-tree .parent-entity {
+  display: inline-block;
+  *display: inline;
+  zoom: 1;
+  font-weight: bold;
+}
+
+/*
+ * Styles for display element
+ */
+.field-type-taxonomy-oggroup-reference ul.links .entity-tree-list ul.entity li {
+  float: none;
+}
