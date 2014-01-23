@@ -1,0 +1,40 @@
+.item-list .field-widget-entityreference-tree ul,
+.block .field-widget-entityreference-tree ul,
+.field-widget-entityreference-tree ul
+{
+  list-style-type: none; 
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+}
+
+.item-list .field-widget-entityreference-tree ul ul,
+.block .field-widget-entityreference-tree ul ul,
+.field-widget-entityreference-tree ul ul
+{
+  margin-left: 1.5em;
+}
+
+.item-list .field-widget-entityreference-tree ul .form-item,
+.block .field-widget-entityreference-tree ul .form-item,
+.field-widget-entityreference-tree ul .form-item {
+  margin: 0;
+  padding: 0;
+}
+
+.field-widget-entityreference-tree .form-item {
+  display: inline-block;
+  *display: inline;
+  zoom: 1;
+}
+
+.field-widget-entityreference-tree .disabled {
+  opacity: .5;
+}
+
+.field-widget-entityreference-tree .parent-term {
+  display: inline-block;
+  *display: inline;
+  zoom: 1;
+  font-weight: bold;
+}

@@ -1,0 +1,191 @@
+<?php
+
+module_load_include('inc', 'entityreference_tree', 'entityreference_tree.field');
+module_load_include('inc', 'entityreference_tree', 'entityreference_tree.widget');
+
+/**
+ * Implements hook_get_entity_hierarchy().
+ */
+function entityreference_tree_get_entity_hierarchy($element, $allowed_ids, $label = '') {
+  if ($element['#field'] == 'entityreference_tree') {
+    if ($element['#allowed_bundles']['entity_type'] == 'taxonomy_term') {
+      foreach ($element['#allowed_bundles']['bundle_names'] as $voc_name) {
+        $voc = taxonomy_vocabulary_machine_name_load($voc_name);
+        $bundles[] = $voc->vid;
+      }
+    } else {
+      $bundles = $element['#allowed_bundles']['bundle_names'];
+    }
+    return _entityreference_tree_get_hierarchy($element['#allowed_bundles']['#parent_id'], $element['#allowed_bundles']['entity_type'], $bundles, $element['#field_name'], $allowed_ids, $element['#filter_view'], $label);break;
+  }
+}
+
+/**
+ * This function returns a hierarchy of entities in a nested array.
+ *
+ * @param $parent_id
+ *   The ID of the root of the Entity hierarchy.
+ * @param $entity_type
+ *   The entity type to restrict the child search.
+ * @param $bundle_names
+ *   The bundle names to restrict the child search.
+ *
+ * @return
+ *   A nested array of the entities child objects.
+ */
+function _entityreference_tree_get_hierarchy($parent_id, $entity_type, $bundle_names, $field_name, &$allowed, $filter, $label, $default = array()) {
+  switch ($entity_type) {
+    case 'taxonomy_term' :  $entities = _entityreference_term_tree_get_children($parent_id, $bundle_names);break;
+    case 'node' :           $entities = _entityreference_node_tree_get_children($parent_id, $entity_type, $bundle_names, $field_name);break;
+    default :               return;
+  }
+  $entity_info = entity_get_info($entity_type);
+  
+  $result = array();
+
+  if ($filter != '') {
+    foreach ($allowed as $k => $v) {
+      if (array_key_exists($k, $entities)) {
+        $entity =& $entities[$k];
+        $children = _entityreference_tree_get_hierarchy($entity->{$entity_info['entity keys']['id']}, $entity_type, $bundle_names, $field_name, $allowed, $filter, $label, $default);
+        if (is_array($children)) {
+          $entity->children = $children;
+          $entity->children_selected = _entityreference_reference_tree_children_selected($entity, $default, $entity_info['entity keys']['id']);
+        }
+        else {
+          $entity->children_selected = FALSE;
+        }
+        $entity->TEST = $label;
+        array_push($result, $entity);
+      }
+    }
+  }
+  elseif ($entities) {
+    foreach ($entities as &$entity) {
+      if ($filter == '' || array_key_exists($entity->{$entity_info['entity keys']['id']}, $allowed)) {
+        $children = _entityreference_tree_get_hierarchy($entity->{$entity_info['entity keys']['id']}, $entity_type, $bundle_names, $field_name, $allowed, $filter, $label, $default);
+        if (is_array($children)) {
+          $entity->children = $children;
+          $entity->children_selected = _entityreference_reference_tree_children_selected($entity, $default, $entity_info['entity keys']['id']);
+        }
+        else {
+          $entity->children_selected = FALSE;
+        }
+        $entity->TEST = $label;
+        array_push($result, $entity);
+      }
+    }
+  }
+
+  return $result;
+}
+
+/**
+ * This function is like taxonomy_get_children, except it doesn't load the entire term.
+ *
+ * @param $tid
+ *   The ID of the term whose children you want to get.
+ * @param $vocabularies
+ *   The list of vocabularies.
+ *
+ * @return
+ *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
+ */
+function _entityreference_term_tree_get_children($tid, $vids) {
+  // DO NOT LOAD TAXONOMY TERMS HERE
+  // Taxonomy terms take a lot of time and memory to load, and this can be
+  // very bad on large vocabularies.  Instead, we load the term as necessary
+  // in cases where it's needed (such as using tokens or when the locale
+  // module is enabled).
+  $query = db_select('taxonomy_term_data', 't');
+  $query->join('taxonomy_term_hierarchy', 'h', 't.tid = h.tid');
+  $query->join('taxonomy_vocabulary', 'v', 'v.vid = t.vid');
+  $query->fields('t', array('tid', 'name'));
+  $query->addField('v', 'machine_name', 'vocabulary_machine_name');
+  $query->condition('t.vid', $vids, 'IN');
+  $query->condition('h.parent', $tid);
+  $query->addTag('term_access');
+  $query->addTag('translatable');
+  $query->orderBy('t.weight');
+  $query->orderBy('t.name');
+  $results = $query->execute();
+
+  $terms = array();
+  while ($term = $results->fetchObject()) {
+    $terms[$term->tid] = $term;
+  }
+
+  return $terms;
+}
+
+/**
+ * This function is like taxonomy_get_children, except it doesn't load the entire node.
+ *
+ * @param $parent_id
+ *   The ID of the OG group whose children you want to get.
+ * @param $entity_type
+ *   The entity type.
+ * @param $bundle_names
+ *   The bundle names.
+ *
+ * @return
+ *   An array of nodes, each in the form array('parent_id' => $parent_id, 'name' => $name)
+ */
+function _entityreference_node_tree_get_children($parent_id, $entity_type, $bundle_names, $field_name) {
+  if ($parent_id) {
+    $query = db_select('field_data_' . $field_name, 'f');
+    $query->join('node', 'n', 'n.nid = f.' . $field_name . '_target_id');
+    $query->fields('n', array('nid', 'title'));
+    $query->condition('f.entity_id', $parent_id);
+    $query->condition('f.entity_type', $entity_type);
+    $query->orderBy('n.title');
+    $results = $query->execute();
+  } else {
+    $query1 = db_select('field_data_' . $field_name, 'f1')->fields('f1', array('entity_id'));
+    $query1->condition('f1.entity_type', $entity_type);
+    if ($bundle_names) {
+      $bundles_allowed = db_or();
+      foreach($bundle_names as $bundle) {
+        $bundles_allowed->condition('bundle', $bundle);
+      }
+      $query1->condition($bundles_allowed);
+    }
+    $query1->where('f2.entity_id = f1.' . $field_name . '_target_id');
+    $query2 = db_select('field_data_' . $field_name, 'f2');
+    $query2->join('node', 'n', 'n.nid = f2.entity_id');
+    $query2->fields('n', array('nid', 'title'));
+    $query2->notExists($query1);
+    $results = $query2->execute();
+  }
+  
+  $nodes = array();
+  while ($node = $results->fetchObject()) {
+    $nodes[$node->nid] = $node;
+  }
+
+  return $nodes;
+}
+
+function _entityreference_reference_tree_children_selected($entities, $default, $id) {
+  foreach ($entities->children as $entity) {
+    if (isset($default[$entity->$id]) || $entity->children_selected) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_get_entity_parent().
+ */
+function _entityreference_tree_get_entity_parent($element, $parent_id) {
+  switch ($entity_type) {
+    case 'taxonomy_term' : $entities = db_query_range("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid", 0, 1, array(':tid'  => $parent_id));break;
+    case 'node' : $field_name = $element['#field_name'];$entities = db_query_range("select h.entity_id as parent from {field_data_" . $field_name . "} h where h." . $field_name . "_target_id = :target_id", 0, 1, array(':target_id'  => $parent_id));break;
+  }
+  $parent = 0;
+  foreach($entities as $entity) {
+    $parent = $entity->parent;
+  }
+  return $parent;
+}

@@ -1,0 +1,7 @@
+name = Entity Reference Tree
+description = An expanding/collapsing tree widget for selecting entities in a entity reference field
+package = Other
+core = 7.x
+
+dependencies[] = entityreference
+dependencies[] = entity_reference_tree

@@ -1,0 +1,40 @@
+.item-list .field-widget-og-reference-tree ul,
+.block .field-widget-og-reference-tree ul,
+.field-widget-og-reference-tree ul
+{
+  list-style-type: none;
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+}
+
+.item-list .field-widget-og-reference-tree ul ul,
+.block .field-widget-og-reference-tree ul ul,
+.field-widget-og-reference-tree ul ul
+{
+  margin-left: 1.5em;
+}
+
+.item-list .field-widget-og-reference-tree ul .form-item,
+.block .field-widget-og-reference-tree ul .form-item,
+.field-widget-og-reference-tree ul .form-item {
+  margin: 0;
+  padding: 0;
+}
+
+.field-widget-og-reference-tree .form-item {
+  display: inline-block;
+  *display: inline;
+  zoom: 1;
+}
+
+.field-widget-og-reference-tree .disabled {
+  opacity: .5;
+}
+
+.field-widget-og-reference-tree .parent-og {
+  display: inline-block;
+  *display: inline;
+  zoom: 1;
+  font-weight: bold;
+}
