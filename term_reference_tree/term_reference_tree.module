@@ -3,19 +3,6 @@
 module_load_include('inc', 'term_reference_tree', 'term_reference_tree.field');
 module_load_include('inc', 'term_reference_tree', 'term_reference_tree.widget');
 
-
-/**
- * Implements hook_theme().
- */
-function term_reference_tree_theme() {
-  return array(
-    'term_tree_list' => array(
-      'render element' => 'element',
-    ),
-  );
-}
-
-
 /**
  * Implements hook_get_entity_hierarchy().
  */
@@ -25,37 +12,31 @@ function term_reference_tree_get_entity_hierarchy($element, $allowed_ids, $label
   }
 }
 
-
+/**
+ * This function returns a taxonomy term hierarchy in a nested array.
+ *
+ * @param $tid
+ *   The ID of the root term.
+ * @param $vid
+ *   The vocabulary ID to restrict the child search.
+ *
+ * @return
+ *   A nested array of the term's child objects.
+ */
 function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter, $label, $default = array()) {
-  $terms = _term_reference_tree_get_children($tid, $vid, $default);
-  
+  $terms = _term_reference_tree_get_children($tid, $vid);
+
   $result = array();
 
   if ($filter != '') {
-    foreach($allowed as $k => $v) {
+    foreach ($allowed as $k => $v) {
       if (array_key_exists($k, $terms)) {
         $term =& $terms[$k];
         $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label, $default);
         if (is_array($children)) {
           $term->children = $children;
-          $term->children_selected = _term_reference_tree_children_selected($term, $default); 
-        } 
-        else {
-          $term->children_selected = FALSE;
+          $term->children_selected = _term_reference_tree_children_selected($term, $default);
         }
-        $term->TEST = $label;
-        array_push($result, $term);
-      }      
-    }
-  }
-  else {
-    foreach($terms as &$term) {
-      if ($filter == '' || array_key_exists($term->tid, $allowed)) {
-        $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label, $default);
-        if (is_array($children)) {
-          $term->children = $children;
-          $term->children_selected = _term_reference_tree_children_selected($term, $default);        
-        } 
         else {
           $term->children_selected = FALSE;
         }
@@ -64,7 +45,23 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
       }
     }
   }
-  
+  else {
+    foreach ($terms as &$term) {
+      if ($filter == '' || array_key_exists($term->tid, $allowed)) {
+        $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label, $default);
+        if (is_array($children)) {
+          $term->children = $children;
+          $term->children_selected = _term_reference_tree_children_selected($term, $default);
+        }
+        else {
+          $term->children_selected = FALSE;
+        }
+        $term->TEST = $label;
+        array_push($result, $term);
+      }
+    }
+  }
+
   return $result;
 }
 
@@ -85,128 +82,46 @@ function _term_reference_tree_get_children($tid, $vid) {
   // very bad on large vocabularies.  Instead, we load the term as necessary
   // in cases where it's needed (such as using tokens or when the locale
   // module is enabled).
-  $select = db_select('taxonomy_term_data', 'd');
-  $select->join('taxonomy_term_hierarchy', 'h', 'd.tid = h.tid');
-  $result = $select->fields('d', array('tid', 'name'))
-    ->condition('d.vid', $vid, '=')
-    ->condition('h.parent', $tid, '=')
-    ->orderBy('weight')
-    ->orderBy('name')
-    ->orderBy('tid')
-    ->execute();
+  $query = db_select('taxonomy_term_data', 't');
+  $query->join('taxonomy_term_hierarchy', 'h', 't.tid = h.tid');
+  $query->join('taxonomy_vocabulary', 'v', 'v.vid = t.vid');
+  $query->fields('t', array('tid', 'name'));
+  $query->addField('v', 'machine_name', 'vocabulary_machine_name');
+  $query->condition('t.vid', $vid);
+  $query->condition('h.parent', $tid);
+  $query->addTag('term_access');
+  $query->addTag('translatable');
+  $query->orderBy('t.weight');
+  $query->orderBy('t.name');
+  $results = $query->execute();
 
   $terms = array();
-  while($term = $result->fetchAssoc()) {
-    $terms[$term['tid']] = (object) $term;
+  while ($term = $results->fetchObject()) {
+    $terms[$term->tid] = $term;
   }
 
   return $terms;
 }
 
-
 function _term_reference_tree_children_selected($terms, $default) {
-  foreach($terms->children as $term) {
-    if(isset($default[$term->tid]) || $term->children_selected) {
-      return true;
+  foreach ($terms->children as $term) {
+    if (isset($default[$term->tid]) || $term->children_selected) {
+      return TRUE;
     }
   }
-  return false;
+  return FALSE;
 }
 
-
-function _term_reference_tree_get_parent($tid) {
-  $q = db_query_range("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid", 0, 1, array(':tid'  => $tid));
+/**
+ * Implements hook_get_entity_parent().
+ */
+function term_reference_tree_get_entity_parent($element, $tid) {
+  $q = db_query_range("SELECT h.parent FROM {taxonomy_term_hierarchy} h WHERE h.tid = :tid", 0, 1, array(':tid' => $tid));
 
   $t = 0;
-  foreach($q as $term) {
+  foreach ($q as $term) {
     $t = $term->parent;
   }
 
   return $t;
 }
-
-
-/**
- * Themes the term tree display (as opposed to the select widget).
- */
-function theme_term_tree_list($variables) {
-  $element =& $variables['element'];
-  $data =& $element['#data'];
-
-  $tree = array();
-
-  # For each selected term:
-  foreach($data as $item) {
-    # Loop if the term ID is not zero:
-    $values = array();
-    $tid = $item['tid'];
-    $original_tid = $tid;
-    while($tid != 0) {
-      # Unshift the term onto an array
-      array_unshift($values, $tid);
-      
-      # Repeat with parent term
-      $tid = _term_reference_tree_get_parent($tid);
-    }
-    
-    $current =& $tree;
-    # For each term in the above array:
-    foreach($values as $tid) {
-      # current[children][term_id] = new array
-      if (!isset($current['children'][$tid])) {
-        $current['children'][$tid] = array('selected' => FALSE);
-      }
-      
-      # If this is the last value in the array, tree[children][term_id][selected] = true
-      if ($tid == $original_tid) {
-        $current['children'][$tid]['selected'] = TRUE;
-      }
-
-      $current['children'][$tid]['tid'] = $tid;
-      $current =& $current['children'][$tid];
-    }
-  }
-  
-  $output = "<div class='entity-tree-list'>";
-  $output .= _term_reference_tree_output_list_level($element, $tree);
-  $output .= "</div>";
-  return $output;
-}
-
-
-/**
- * Helper function to output a single level of the term reference tree
- * display.
- */
-function _term_reference_tree_output_list_level(&$element, &$tree) {
-  if (isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
-    $output = '<ul class="entity">';
-    $settings = $element['#display']['settings'];
-    $tokens_selected = $settings['token_display_selected'];
-    $tokens_unselected = ($settings['token_display_unselected'] != '') ? $settings['token_display_unselected'] : $tokens_selected;
-
-    $taxonomy_term_info = entity_get_info('taxonomy_term');
-    foreach($tree['children'] as &$item) {
-      $term = $taxonomy_term_info['load hook']($item['tid']);
-      $uri = $taxonomy_term_info['uri callback']($term);
-      $uri['options']['html'] = TRUE;
-      $class = $item['selected'] ? 'selected' : 'unselected';
-      $output .= "<li class='$class'>";
-      if ($tokens_selected != '' && module_exists('token')) {
-        $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;
-        $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
-      }
-      else {
-        $output .= l(entity_label('taxonomy_term', $term), $uri['path'], $uri['options']);
-      }
-      if (isset($item['children'])) {
-        $output .= _term_reference_tree_output_list_level($element, $item);
-      }
-      $output .= "</li>";
-    }
-
-    $output .= '</ul>';
-    return $output;
-  }
-}
-

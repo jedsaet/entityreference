@@ -15,3 +15,6 @@
  */
 function hook_get_entity_hierarchy($element, $allowed_ids, $label = '') {
 }
+
+function hook_get_entity_parent($element, $entity_id) {
+}

@@ -5,11 +5,11 @@
  */
 function term_reference_tree_field_widget_info() {
   return array(
-    'term_reference_tree' => array (
-      'label' => 'Term reference tree',
+    'term_reference_tree' => array(
+      'label' => t('Term reference tree'),
       'field types' => array('taxonomy_term_reference'),
       'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM, 
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
         'default value' => FIELD_BEHAVIOR_DEFAULT,
       ),
       'settings' => array(
@@ -37,7 +37,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
   $widget = $instance['widget'];
   $settings = $widget['settings'];
   $form = array();
-  
+
   if ($widget['type'] == 'term_reference_tree') {
     $form['start_minimized'] = array(
       '#type' => 'checkbox',
@@ -46,7 +46,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['start_minimized'],
       '#return_value' => 1,
     );
-    
+
     $form['leaves_only'] = array(
       '#type' => 'checkbox',
       '#title' => t('Leaves only'),
@@ -76,10 +76,10 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
     if (module_exists('views')) {
       $views = views_get_all_views();
       $options = array('' => 'none');
-      
-      foreach($views as $name => $view) {
+
+      foreach ($views as $name => $view) {
         if ($view->base_table == 'taxonomy_term_data') {
-          foreach($view->display as $display) {
+          foreach ($view->display as $display) {
             $options["$name:{$display->id}"] = "{$view->human_name}: {$display->display_title}";
           }
         }
@@ -97,7 +97,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
         '#title' => 'Argument view type',
         '#description' => t("Select the type of argument you want to send to the view"),
         '#default_value' => $settings['filter_view_arg_type'],
-        '#options' => $options_args,
+        '#options' => array(), //$options_args,
       );
       $form['filter_view_arg_key'] = array(
         '#type' => 'textfield',
@@ -126,7 +126,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       $form['token_display'] = array(
         '#type' => 'textarea',
         '#title' => 'Custom Term Label',
-        '#description' => t("Use tokens to change the term labels for the checkboxes and/or radio buttons.  Leave this field blank to use the term name."),
+        '#description' => t("Use tokens to change the term labels for the checkboxes and/or radio buttons. Leave this field blank to use the term name."),
         '#default_value' => $settings['token_display'],
       );
 
@@ -140,18 +140,16 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
         '#type' => 'hidden',
         '#value' => $settings['token_display'],
       );
-    }    
-    
+    }
+
     $form['track_list'] = array(
       '#type' => 'checkbox',
       '#title' => t('Track list'),
-      '#description' => t(
-          'Track what the user has chosen in a list below the tree.
-           Useful when the tree is large, with many levels.'),
+      '#description' => t('Track what the user has chosen in a list below the tree. Useful when the tree is large, with many levels.'),
       '#default_value' => $settings['track_list'],
       '#return_value' => 1,
     );
-    
+
     $form['max_depth'] = array(
       '#type' => 'textfield',
       '#title' => t('Maximum Depth'),
@@ -159,16 +157,16 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['max_depth'],
       '#size' => 2,
       '#return_value' => 1,
-    );    
-    
+    );
+
     $form['parent_id'] = array(
       '#type' => 'textfield',
       '#title' => t('Parent Term ID'),
-      '#description' => t("Only show items underneath the taxonomy term with this ID number.  Leave this field blank to not limit terms by parent."),
+      '#description' => t("Only show items underneath the taxonomy term with this ID number. Leave this field blank to not limit terms by parent."),
       '#default_value' => $settings['parent_id'],
       '#size' => 8,
       '#return_value' => 1,
-    );    
+    );
   }
 
   return $form;
@@ -179,36 +177,35 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
  */
 function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $settings = $instance['widget']['settings'];
-  $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
+  $vocabulary = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
   $value_key = key($field['columns']);
   $type = $instance['widget']['type'];
-  
+
   $default_value = array();
-  if ($items) {
-    foreach($items as $item) {
-      $key = $item[$value_key];
-      if ($key === 0) {
-        $default_value[$key] = '0';
-      }
-      else {
-        $default_value[$key] = $key;
-      }
+  foreach ($items as $item) {
+    $key = $item[$value_key];
+    if ($key === 0) {
+      $default_value[$key] = '0';
+    }
+    else {
+      $default_value[$key] = $key;
     }
   }
 
   $multiple = $field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED;
   $properties = array();
 
-  if (!array_key_exists('#value', $element))
+  if (!array_key_exists('#value', $element)) {
     $element['#value'] = array();
+  }
 
   // A switch statement, in case we ever add more widgets to this module.
-  switch($instance['widget']['type']) {
+  switch ($instance['widget']['type']) {
     case 'term_reference_tree':
       $element['#field'] = 'term_reference_tree';
       $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.js');
       $element['#attached']['css'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css');
-      $element['#type'] = 'checkbox_tree';   
+      $element['#type'] = 'checkbox_tree';
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
       $element['#max_choices'] = $field['cardinality'];
       $element['#max_depth'] = $settings['max_depth'];
@@ -222,13 +219,12 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#track_list'] = $settings['track_list'];
       $element['#allowed_ids'] = ($settings['allowed_ids'] <> '') ? explode(',', str_replace(" ", "", $settings['allowed_ids'])) : array();
       $element['#allowed_bundles']['#parent_id'] = $field['settings']['allowed_values'][0]['parent'];
-      $element['#allowed_bundles']['#vocabulary'] = $voc->vid;
+      $element['#allowed_bundles']['#vocabulary'] = $vocabulary->vid;
       $element['#token_display'] = module_exists('token') ? $settings['token_display'] : '';
-      $element['#target_id'] = 'tid';
-      $element['#target_name'] = 'name';
+      $element['#target_entity'] = 'taxonomy_term';
       break;
   }
-  
+
   $element += array(
     '#value_key' => $value_key,
     '#element_validate' => array('_entity_reference_tree_widget_validate'),

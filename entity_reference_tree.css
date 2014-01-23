@@ -10,7 +10,7 @@
 }
 
 .entity-reference-tree-button {
-  background-image: url("images/bullet_toggle_minus.png");
+  background-image: url('images/bullet_toggle_minus.png');
 }
 
 .no-entity-reference-tree-button {
@@ -18,7 +18,7 @@
 }
 
 .entity-reference-tree-button.entity-reference-tree-collapsed {
-  background-image: url("images/bullet_toggle_plus.png");
+  background-image: url('images/bullet_toggle_plus.png');
 }
 
 .form-type-checkbox-tree .error {
@@ -35,7 +35,8 @@
 
 /*
  * Styles for track list of selected options.
- */ 
+ */
+
 .entity-reference-tree-track-list li {
   list-style-type: none;
   list-style-image: none;
@@ -52,7 +53,7 @@
   background-position: middle left;
 }
 
-.entity-reference-tree-track-list li.term_ref_tree_nothing_message {
+.entity-reference-tree-track-list li.entity_ref_tree_nothing_message {
   list-style-type: none;
   list-style-image: none;
   font-style: italic;
@@ -70,14 +71,22 @@
 /*
  * Styles for display element
  */
-.entity-tree-list ul.entity li.selected {
+
+.entity-tree-list .selected {
   font-weight: bold;
 }
 
-.entity-tree-list ul.entity li.unselected {
+.entity-tree-list .unselected {
   font-weight: normal;
 }
 
-.entity-tree-list ul.entity  {
+.entity-tree-list ul {
   margin-top: 0;
+}
+
+/*
+ * Styles for display element
+ */
+ul.links .entity-tree-list ul.term li {
+  float: none;
 }

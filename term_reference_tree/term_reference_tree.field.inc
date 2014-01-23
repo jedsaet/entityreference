@@ -11,6 +11,8 @@ function term_reference_tree_field_formatter_info() {
       'settings' => array(
         'token_display_selected' => '',
         'token_display_unselected' => '',
+        'target_entity' => 'taxonomy_term',
+        'target_id' => 'tid',
       ),
     ),
   );
@@ -25,12 +27,14 @@ function term_reference_tree_field_formatter_view($entity_type, $entity, $field,
 
   switch ($display['type']) {
     case 'term_reference_tree':
-      $element[] = array(
-        '#theme' => 'term_tree_list',
-        '#data' => $items,
-        '#display' => $display,
-        '#attached' => array('css' => array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css')),
-      );
+      if (!empty($items)) {
+        $element[] = array(
+          '#theme' => 'entity_reference_tree_list',
+          '#data' => $items,
+          '#display' => $display,
+          '#attached' => array('css' => array(drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css')),
+        );
+      }
       break;
   }
 
@@ -66,7 +70,7 @@ function term_reference_tree_field_formatter_settings_form($field, $instance, $v
       '#token_types' => array('term'),
     );
   }
-  
+
   return $element;
 }
 
@@ -81,9 +85,8 @@ function term_reference_tree_field_formatter_settings_summary($field, $instance,
   $summary = '';
 
   if ($display['type'] == 'term_reference_tree') {
-    $summary = t('Uses tokens: ') . t($settings['token_display_selected'] != '' ? 'Yes' : 'No');
+    $summary = t('Uses tokens: ') . ($settings['token_display_selected'] != '' ? t('Yes') : t('No'));
   }
 
   return $summary;
 }
-
