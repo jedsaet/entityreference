@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Build hierarchical structure for OG group field.
+ */
+
 module_load_include('inc', 'og_reference_tree', 'og_reference_tree.field');
 module_load_include('inc', 'og_reference_tree', 'og_reference_tree.widget');
 
@@ -15,14 +20,14 @@ function og_reference_tree_get_entity_hierarchy($element, $allowed_ids, $label =
 /**
  * This function returns a hierarchy of OG groups in a nested array.
  *
- * @param $parent_id
+ * @param int $parent_id
  *   The ID of the root of the OG hierarchy.
- * @param $entity_type
+ * @param string $entity_type
  *   The entity type to restrict the child search.
- * @param $bundle_names
+ * @param array $bundle_names
  *   The bundle names to restrict the child search.
  *
- * @return
+ * @return array
  *   A nested array of the OG group's child objects.
  */
 function _og_reference_tree_get_og_hierarchy($parent_id, $entity_type, $bundle_names, &$allowed, $filter, $label, $default = array()) {
@@ -69,53 +74,57 @@ function _og_reference_tree_get_og_hierarchy($parent_id, $entity_type, $bundle_n
 }
 
 /**
- * This function is like taxonomy_get_children, except it doesn't load the entire og group.
+ * This function is like taxonomy_get_children, except it
+ * doesn't load the entire og group.
  *
- * @param $parent_id
+ * @param int $parent_id
  *   The ID of the OG group whose children you want to get.
- * @param $entity_type
+ * @param string $entity_type
  *   The entity type.
- * @param $bundle_names
+ * @param array $bundle_names
  *   The bundle names.
  *
- * @return
- *   An array of OG groups, each in the form array('id' => $entity_id, 'name' => $name)
+ * @return array
+ *   An array of OG groups, each in the form array('id', 'name').
  */
 function _og_reference_tree_get_children($parent_id, $entity_type, $bundle_names) {
   $etids = array();
 
   if ($parent_id) {
-    // Get all children of the parent id in OG Membership table
+    // Get all children of the parent id in OG Membership table.
     $query = db_select('og_membership ', 'o');
     $query->fields('o', array('etid'));
     $query->condition('o.gid', $parent_id);
     $query->condition('o.entity_type', $entity_type);
     $results = $query->execute();
 
-    // Create a table of entity ids
+    // Create a table of entity ids.
     while ($entity = $results->fetchObject()) {
-      if ($entity->etid != $parent_id) $etids[$entity->etid] = $entity->etid;
+      if ($entity->etid != $parent_id) {
+        $etids[$entity->etid] = $entity->etid;
+      }
     }
-  } else {
+  }
+  else {
     $query1 = db_select('field_data_group_group', 'g')->fields('g', array('entity_id'));
     $query1->join('og_membership', 'o', 'o.etid= g.entity_id AND o.entity_type = g.entity_type');
     $query1->condition('g.entity_type', $entity_type);
     if ($bundle_names) {
       $bundles_allowed = db_or();
-      foreach($bundle_names as $bundle) {
+      foreach ($bundle_names as $bundle) {
         $bundles_allowed->condition('bundle', $bundle);
       }
       $query1->condition($bundles_allowed);
     }
     $query1->where('g1.entity_id = g.entity_id');
-    $results = db_select('field_data_group_group', 'g1')->fields('g1', array('entity_id', 'entity_type', 'bundle'))->notExists($query1)->execute();  
+    $results = db_select('field_data_group_group', 'g1')->fields('g1', array('entity_id', 'entity_type', 'bundle'))->notExists($query1)->execute();
 
-    // Create a table of entity ids
+    // Create a table of entity ids.
     while ($entity = $results->fetchObject()) {
       $etids[$entity->entity_id] = ($entity->entity_id);
     }
   }
-  
+
   return ($etids) ? entity_load($entity_type, $etids, $bundle_names ? array('type' => $bundle_names) : NULL) : NULL;
 }
 
@@ -130,19 +139,27 @@ function _og_reference_tree_children_selected($entities, $default, $id) {
 
 /**
  * Implements hook_get_entity_parent().
+ *
+ * @param array $element
+ *   The element of the field.
+ * @param int $entity_id
+ *   The entity ID.
+ *
+ * @return array
+ *   An array of nodes, each in the form array('parent_id', 'name').
  */
-function og_reference_tree_get_entity_parent($element, $parent_id) {
-  if (!$parent_id) return;
+function og_reference_tree_get_entity_parent($element, $entity_id) {
+  if (!$entity_id) return;
   $query = db_select('og_membership ', 'o');
   $query->fields('o', array('gid'));
-  $query->condition('o.etid', $parent_id);
+  $query->condition('o.etid', $entity_id);
   $query->condition('o.entity_type', $element['#display']['settings']['target_entity']);
   $results = $query->execute();
 
   // Create a table of entity ids
   $etids = array();
   while ($entity = $results->fetchObject()) {
-    if ($entity->gid != $parent_id) $etids[] = $entity->gid;
+    if ($entity->gid != $entity_id) $etids[] = $entity->gid;
   }
 
   return $etids;

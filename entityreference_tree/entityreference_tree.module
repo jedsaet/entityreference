@@ -18,7 +18,8 @@ function entityreference_tree_get_entity_hierarchy($element, $allowed_ids, $labe
         $voc = taxonomy_vocabulary_machine_name_load($voc_name);
         $bundles[] = $voc->vid;
       }
-    } else {
+    }
+    else {
       $bundles = $element['#allowed_bundles']['bundle_names'];
     }
     return _entityreference_tree_get_hierarchy($element['#allowed_bundles']['#parent_id'], $element['#allowed_bundles']['entity_type'], $bundles, $element['#field_name'], $allowed_ids, $element['#filter_view'], $label);break;
@@ -40,12 +41,14 @@ function entityreference_tree_get_entity_hierarchy($element, $allowed_ids, $labe
  */
 function _entityreference_tree_get_hierarchy($parent_id, $entity_type, $bundle_names, $field_name, &$allowed, $filter, $label, $default = array()) {
   switch ($entity_type) {
-    case 'taxonomy_term' :
+    case 'taxonomy_term':
       $entities = _entityreference_term_tree_get_children($parent_id, $bundle_names);
       break;
-    case 'node' :
+
+    case 'node':
       $entities = _entityreference_node_tree_get_children($parent_id, $entity_type, $bundle_names, $field_name);
       break;
+
     default
       return;
   }
@@ -91,16 +94,16 @@ function _entityreference_tree_get_hierarchy($parent_id, $entity_type, $bundle_n
 }
 
 /**
- * This function is like taxonomy_get_children,
+ * This function is like taxonomy_get_children
  * except it doesn't load the entire term.
  *
  * @param int $tid
  *   The ID of the term whose children you want to get.
- * @param array $vocabularies
+ * @param array $vids
  *   The list of vocabularies.
  *
  * @return array
- *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
+ *   An array of taxonomy terms, each in the form array('tid', 'name')
  */
 function _entityreference_term_tree_get_children($tid, $vids) {
   // DO NOT LOAD TAXONOMY TERMS HERE
@@ -130,15 +133,17 @@ function _entityreference_term_tree_get_children($tid, $vids) {
 }
 
 /**
- * This function is like taxonomy_get_children,
+ * This function is like taxonomy_get_children
  * except it doesn't load the entire node.
  *
- * @param $parent_id
+ * @param int $parent_id
  *   The ID of the OG group whose children you want to get.
- * @param $entity_type
+ * @param string $entity_type
  *   The entity type.
- * @param $bundle_names
+ * @param array $bundle_names
  *   The bundle names.
+ * @param string $field_name
+ *   The field name.
  *
  * @return
  *   An array of nodes, each in the form array('parent_id', 'name')
@@ -181,11 +186,11 @@ function _entityreference_node_tree_get_children($parent_id, $entity_type, $bund
 /**
  * Find selected children.
  *
- * @param array
+ * @param array $entities
  *   An array of entity objects.
- * @param string
+ * @param string $default
  *   The default string.
- * @param int
+ * @param int $id
  *   The entity ID.
  *
  * @return array
@@ -203,18 +208,25 @@ function _entityreference_reference_tree_children_selected($entities, $default, 
 /**
  * Implements hook_get_entity_parent().
  *
- * @param array
+ * @param array $element
  *   The element of the field.
- * @param int
+ * @param int $entity_id
  *   The entity ID.
  *
  * @return array
  *   An array of nodes, each in the form array('parent_id', 'name')
  */
-function _entityreference_tree_get_entity_parent($element, $parent_id) {
+function _entityreference_tree_get_entity_parent($element, $entity_id) {
   switch ($element['#allowed_bundles']['entity_type']) {
-    case 'taxonomy_term' : $entities = db_query_range("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid", 0, 1, array(':tid'  => $entity_id));break;
-    case 'node' : $field_name = $element['#field_name'];$entities = db_query_range("select h.entity_id as parent from {field_data_" . $field_name . "} h where h." . $field_name . "_target_id = :target_id", 0, 1, array(':target_id'  => $parent_id));break;
+    case 'taxonomy_term':
+      $entities = db_query_range("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid", 0, 1, array(':tid' => $entity_id));
+      break;
+
+    case 'node':
+      $field_name = $element['#field_name'];
+      $entities = db_query_range("select h.entity_id as parent from {field_data_" . $field_name . "} h where h." . $field_name . "_target_id = :target_id", 0, 1, array(':target_id' => $entity_id));
+      break;
+
   }
   $parent = 0;
   foreach ($entities as $entity) {

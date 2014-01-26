@@ -210,10 +210,8 @@ function theme_checkbox_tree($variables) {
     $attributes['class'][] = "entity-reference-tree-cascading-selection";
   }
 
-  $add_track_list = FALSE;
   if (array_key_exists('//track_list', $element) && $element['//track_list']) {
     $attributes['class'][] = "entity-reference-tree-track-list-shown";
-    $add_track_list = TRUE;
   }
 
   if (!empty($element['//attributes']['class'])) {
@@ -226,18 +224,14 @@ function theme_checkbox_tree($variables) {
 }
 
 /**
- * This function prints a list item with a checkbox and an unordered list of all the elements inside it.
+ * This function prints a list item with a checkbox and
+ * an unordered list of all the elements inside it.
  */
 function theme_checkbox_tree_level($variables) {
   $element = $variables['element'];
   $sm = '';
   if (array_key_exists('//level_start_minimized', $element) && $element['//level_start_minimized']) {
     $sm = " style='display: none;'";
-  }
-
-  $max_choices = 0;
-  if (array_key_exists('//max_choices', $element)) {
-    $max_choices = $element['//max_choices'];
   }
 
   $output = "<ul class='entity-reference-tree-level '$sm>";
@@ -254,7 +248,8 @@ function theme_checkbox_tree_level($variables) {
 }
 
 /**
- * This function prints a single item in the tree, followed by that item's children (which may be another checkbox_tree_level).
+ * This function prints a single item in the tree, followed by that item's children
+ * (which may be another checkbox_tree_level).
  */
 function theme_checkbox_tree_item($variables) {
   $element = $variables['element'];
@@ -287,7 +282,8 @@ function theme_checkbox_tree_label($variables) {
 }
 
 /**
- * Shows a list of items that have been checked. The display happens on the client-side.
+ * Shows a list of items that have been checked.
+ * The display happens on the client-side.
  *
  * @param array $variables
  *   Variables available for theming.
@@ -322,7 +318,9 @@ function theme_checkbox_tree_track_list($variables) {
 /**
  * Validates the entity reference tree widgets.
  *
- * This function sets the value of the tree widgets into a form that Drupal can understand.
+ * This function sets the value of the tree widgets into a form that Drupal
+ * can understand, and also checks if the field is required and has been
+ * left empty.
  *
  * @param array $element
  *   The element to be validated.
@@ -444,7 +442,7 @@ function _entity_reference_tree_get_allowed_values($element) {
  *
  * @param array $element
  *   The main checkbox_tree element.
- * @param $object entity
+ * @param object $entity
  *   An entity object.  $entity->children should be an array of the entity
  *   objects that are that entity's children.
  * @param array $form_state
@@ -461,10 +459,6 @@ function _entity_reference_tree_get_allowed_values($element) {
 function _entity_reference_tree_build_item(&$element, &$entity, $form_state, $value, $max_choices, $parent_ids, $parent, $depth) {
   $entity_info = entity_get_info($element['//target_entity']);
   $id = $entity_info['entity keys']['id'];
-  $start_minimized = FALSE;
-  if (array_key_exists('//start_minimized', $element)) {
-    $start_minimized = $element['//start_minimized'];
-  }
 
   $leaves_only = FALSE;
   if (array_key_exists('//leaves_only', $element)) {
@@ -483,7 +477,6 @@ function _entity_reference_tree_build_item(&$element, &$entity, $form_state, $va
   );
 
   if (!$element['//leaves_only'] || count($entity->children) == 0) {
-    $name = "edit-" . str_replace('_', '-', $element['//field_name']);
     if (!$element['//allowed_ids'] || in_array($entity->{$id}, $element['//allowed_ids'])) {
       $e = array(
         '//type' => ($max_choices == 1) ? 'radio' : 'checkbox',
@@ -536,8 +529,9 @@ function _entity_reference_tree_build_item(&$element, &$entity, $form_state, $va
 /**
  * Builds a level in the entity reference tree widget.
  *
- * This function returns an element that has a number of checkbox_tree_item elements
- * as children.  It is meant to be called recursively when the widget is built.
+ * This function returns an element that has a number of 
+ * checkbox_tree_item elements as children.  It is meant to be called 
+ * recursively when the widget is built.
  *
  * @param array $element
  *   The main checkbox_tree element.

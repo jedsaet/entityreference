@@ -179,7 +179,6 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $settings = $instance['widget']['settings'];
   $vocabulary = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
   $value_key = key($field['columns']);
-  $type = $instance['widget']['type'];
 
   $default_value = array();
   foreach ($items as $item) {

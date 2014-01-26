@@ -56,7 +56,7 @@ Drupal.behaviors.entityReferenceTree = {
             //checkbox or radio
             input_type
           );
-        }); //End labels.each
+        });
 
         //Show "nothing selected" message, if needed.
         showNothingSelectedMessage(track_list_container);
@@ -110,7 +110,7 @@ Drupal.behaviors.entityReferenceTree = {
 
           //Show "nothing selected" message, if needed.
           showNothingSelectedMessage(track_list_container);
-        }); //End process checkbox changes.
+        });
       }
 
       //On page load, check if the user wants a cascading selection.

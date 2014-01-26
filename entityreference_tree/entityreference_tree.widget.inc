@@ -10,7 +10,7 @@
  */
 function entityreference_tree_field_widget_info() {
   return array(
-    'entityreference_tree' => array (
+    'entityreference_tree' => array(
       'label' => 'Entity reference tree',
       'field types' => array('entityreference'),
       'behaviors' => array(
@@ -158,7 +158,10 @@ function entityreference_tree_field_widget_form(&$form, &$form_state, $field, $i
     case 'entityreference_tree':
       $element['#field'] = 'entityreference_tree';
       $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.js');
-      $element['#attached']['css'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css');
+      $element['#attached']['css'] = array(
+        drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', 
+        drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css'
+      );
       $element['#type'] = 'checkbox_tree';
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
       $element['#max_choices'] = $field['cardinality'];
