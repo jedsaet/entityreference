@@ -179,7 +179,7 @@ function _entityreference_reference_tree_children_selected($entities, $default, 
  * Implements hook_get_entity_parent().
  */
 function _entityreference_tree_get_entity_parent($element, $parent_id) {
-  switch ($entity_type) {
+  switch ($element['#allowed_bundles']['entity_type']) {
     case 'taxonomy_term' : $entities = db_query_range("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid", 0, 1, array(':tid'  => $parent_id));break;
     case 'node' : $field_name = $element['#field_name'];$entities = db_query_range("select h.entity_id as parent from {field_data_" . $field_name . "} h where h." . $field_name . "_target_id = :target_id", 0, 1, array(':target_id'  => $parent_id));break;
   }

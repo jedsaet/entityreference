@@ -129,7 +129,6 @@ function og_reference_tree_field_widget_settings_form($field, $instance) {
 function og_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $settings = $instance['widget']['settings'];
   $value_key = key($field['columns']);
-  $type = $instance['widget']['type'];
 
   $default_value = array();
   foreach ($items as $item) {

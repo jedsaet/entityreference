@@ -65,8 +65,7 @@ function entity_reference_tree_theme() {
 }
 
 /**
- * Recursively go through the option tree and return a flat array of
- * options
+ * Recursively go through the option tree and return a flat array of options.
  */
 function _entity_reference_tree_flatten($element, &$form_state) {
   $output = array();

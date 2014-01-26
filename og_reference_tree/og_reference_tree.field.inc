@@ -47,7 +47,6 @@ function og_reference_tree_field_formatter_view($entity_type, $entity, $field, $
  */
 function og_reference_tree_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
   $display = $instance['display'][$view_mode];
-  $settings = $display['settings'];
 
   $element = array();
 
@@ -60,7 +59,6 @@ function og_reference_tree_field_formatter_settings_form($field, $instance, $vie
  */
 function og_reference_tree_field_formatter_settings_summary($field, $instance, $view_mode) {
   $display = $instance['display'][$view_mode];
-  $settings = $display['settings'];
 
   $summary = '';
 
