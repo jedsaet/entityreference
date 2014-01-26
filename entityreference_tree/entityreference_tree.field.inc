@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Configuration of field formatter for entityreference field.
+ */
+
+/**
  * Implements hook_field_formatter_info().
  */
 function entityreference_tree_field_formatter_info() {
@@ -32,7 +37,9 @@ function entityreference_tree_field_formatter_view($entity_type, $entity, $field
           '#theme' => 'entity_reference_tree_list',
           '#data' => $items,
           '#display' => $display,
-          '#attached' => array('css' => array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css')),
+          '#attached' => array('css' => array(
+            drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css')
+          ),
         );
       }
       break;
@@ -64,4 +71,3 @@ function entityreference_tree_field_formatter_settings_summary($field, $instance
 
   return $summary;
 }
-

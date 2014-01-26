@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Configuration of widget for OG group field.
+ */
+
+/**
  * Implements hook_field_widget_info().
  */
 function og_reference_tree_field_widget_info() {
@@ -82,7 +87,7 @@ function og_reference_tree_field_widget_settings_form($field, $instance) {
       '#type' => 'hidden',
       '#value' => $settings['filter_view_arg_type'],
     );
-    
+
     $form['filter_view_arg_key'] = array(
       '#type' => 'hidden',
       '#value' => $settings['filter_view_arg_key'],

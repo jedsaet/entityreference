@@ -47,10 +47,14 @@ Drupal.behaviors.entityReferenceTree = {
         labels.each(function(index) {
           label_element = $(labels[index]);
           addItemToTrackList(
-            track_list_container,         //Where to add new item.
-            label_element.html(),         //Text of new item.
-            $(label_element).attr('for'), //Id of control new item is for.
-            input_type                    //checkbox or radio
+            //Where to add new item.
+            track_list_container,
+            //Text of new item.
+            label_element.html(),
+            //Id of control new item is for.
+            $(label_element).attr('for'),
+            //checkbox or radio
+            input_type
           );
         }); //End labels.each
 
@@ -89,10 +93,14 @@ Drupal.behaviors.entityReferenceTree = {
             //Control checked - add item to the track list.
             label_element = event_target.next();
             addItemToTrackList(
-              track_list_container,         //Where to add new item.
-              label_element.html(),         //Text of new item.
-              $(label_element).attr('for'), //Id of control new item is for.
-              input_type                    //checkbox or radio
+              //Where to add new item.
+              track_list_container,
+              //Text of new item.
+              label_element.html(),
+              //Id of control new item is for.
+              $(label_element).attr('for'),
+              //checkbox or radio
+              input_type
             );
           }
           else {
@@ -103,7 +111,7 @@ Drupal.behaviors.entityReferenceTree = {
           //Show "nothing selected" message, if needed.
           showNothingSelectedMessage(track_list_container);
         }); //End process checkbox changes.
-      } //End Want a track list.
+      }
 
       //On page load, check if the user wants a cascading selection.
       if($(this).hasClass('entity-reference-tree-cascading-selection')) {
@@ -127,8 +135,7 @@ Drupal.behaviors.entityReferenceTree = {
           }
 
         });
-        //End process checkbox changes.
-      } //End Want a cascading checking.
+      }
 
     });
   }
@@ -191,13 +198,15 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
     //If item is already on the track list, do nothing.
     if (control_id == item_comparing_to.data('control_id')) {
       inserted_flag = true;
-      return false; //Returning false stops the loop.
+      //Returning false stops the loop.
+      return false;
     }
     else if (control_id < item_comparing_to.data('control_id')) {
       //Add it here.
       item_comparing_to.before(new_item);
       inserted_flag = true;
-      return false; //Returning false stops the loop.
+      //Returning false stops the loop.
+      return false;
     }
   });
 
@@ -230,7 +239,8 @@ function showNothingSelectedMessage(track_list_container) {
       );
     }
   }
-  else { // !(num_real_items_showing == 0)
+  // !(num_real_items_showing == 0)
+  else {
     //There are real items.
     if (message_showing) {
       track_list_container.find('.entity_ref_tree_nothing_message').remove();
@@ -276,10 +286,14 @@ function checkMaxChoices(item, checkbox) {
           if(track_list_container) {
             label_element = $(this).next();
             addItemToTrackList(
-              track_list_container,         //Where to add new item.
-              label_element.html(),         //Text of new item.
-              $(label_element).attr('for'), //Id of control new item is for.
-              input_type                    //checkbox or radio
+              //Where to add new item.
+              track_list_container,
+              //Text of new item.
+              label_element.html(),
+              //Id of control new item is for.
+              $(label_element).attr('for'),
+              //checkbox or radio
+              input_type
             );
           }
         });

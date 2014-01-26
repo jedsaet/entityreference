@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Widget used for different entities with a hierarchy stuctures to manage and display them easily.
+ * GLobal widget actions to manage and display entity hierarchy structures.
  */
 
 module_load_include('inc', 'entity_reference_tree', 'entity_reference_tree.widget');

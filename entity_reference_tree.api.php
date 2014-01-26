@@ -22,7 +22,7 @@ function hook_get_entity_hierarchy($element, $allowed_ids, $label = '') {
 }
 
 /**
- * Get entity parent item
+ * Get entity parent item.
  *
  * @param object $element
  *   The main checkbox_tree element.

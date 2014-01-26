@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Configure widget management for a entity reference tree.
+ */
+
+/**
  * Themes the OG group tree display (as opposed to the select widget).
  */
 function theme_entity_reference_tree_list($variables) {
@@ -10,26 +15,26 @@ function theme_entity_reference_tree_list($variables) {
 
   // For each selected group:
   foreach ($data as $item) {
-    // Loop if the group ID is not zero:
+    // Loop if the group ID is not zero.
     $values = array();
     $id = $item[$element['//display']['settings']['target_id']];
-    $original_id = $id;    
+    $original_id = $id;
     while ($id != 0) {
-      // Unshift the term onto an array
+      // Unshift the term onto an array.
       array_unshift($values, $id);
 
-      // Repeat with parent group
+      // Repeat with parent group.
       $id = current(module_invoke_all('get_entity_parent', $element, $id));
     }
     $current =& $tree;
-    // For each group in the above array:
+    // For each group in the above array.
     foreach ($values as $id) {
-      // current[children][group_id] = new array
+      // current[children][group_id] = new array.
       if (!isset($current['children'][$id])) {
         $current['children'][$id] = array('selected' => FALSE);
       }
 
-      // If this is the last value in the array, value of tree children is true
+      // If this is the last value in the array, value of tree children is true.
       if ($id == $original_id) {
         $current['children'][$id]['selected'] = TRUE;
       }
@@ -46,8 +51,7 @@ function theme_entity_reference_tree_list($variables) {
 }
 
 /**
- * Helper function to output a single level of the term reference tree
- * display.
+ * Helper function to output a single level of the term reference tree.
  */
 function _entity_reference_tree_output_list_level(&$element, &$tree) {
   if (isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
@@ -108,12 +112,12 @@ function _entity_reference_tree_cascading_selection_validate($element, &$form_st
  *
  * This function processes the checkbox_tree widget.
  *
- * @param $element
+ * @param array $element
  *   The element to be drawn.$element['//field_name']
- * @param $form_state
+ * @param array $form_state
  *   The form state.
  *
- * @return
+ * @return object
  *   The processed element.
  */
 function entity_reference_tree_process_checkbox_tree($element, $form_state) {
@@ -174,7 +178,7 @@ function entity_reference_tree_process_checkbox_tree($element, $form_state) {
 /**
  * Returns HTML for a checkbox_tree form element.
  *
- * @param $variables
+ * @param array $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
  *
@@ -216,8 +220,8 @@ function theme_checkbox_tree($variables) {
     $attributes['class'] = array_merge($attributes['class'], $element['//attributes']['class']);
   }
   return
-      '<div' . drupal_attributes($attributes) . '>' 
-    . (!empty($element['//children']) ? $element['//children'] : '') 
+      '<div' . drupal_attributes($attributes) . '>'
+    . (!empty($element['//children']) ? $element['//children'] : '')
     . '</div>';
 }
 
@@ -250,8 +254,7 @@ function theme_checkbox_tree_level($variables) {
 }
 
 /**
- * This function prints a single item in the tree, followed by that item's children
- * (which may be another checkbox_tree_level).
+ * This function prints a single item in the tree, followed by that item's children (which may be another checkbox_tree_level).
  */
 function theme_checkbox_tree_item($variables) {
   $element = $variables['element'];
@@ -284,12 +287,9 @@ function theme_checkbox_tree_label($variables) {
 }
 
 /**
- * Shows a list of items that have been checked.
- * The display happens on the client-side.
- * Use this function to theme the element's label,
- * and the "nothing selected" message.
+ * Shows a list of items that have been checked. The display happens on the client-side.
  *
- * @param $variables
+ * @param array $variables
  *   Variables available for theming.
  */
 function theme_checkbox_tree_track_list($variables) {
@@ -322,16 +322,14 @@ function theme_checkbox_tree_track_list($variables) {
 /**
  * Validates the entity reference tree widgets.
  *
- * This function sets the value of the tree widgets into a form that Drupal
- * can understand, and also checks if the field is required and has been
- * left empty.
+ * This function sets the value of the tree widgets into a form that Drupal can understand.
  *
- * @param $element
+ * @param array $element
  *   The element to be validated.
- * @param $form_state
+ * @param array $form_state
  *   The state of the form.
  *
- * @return
+ * @return array
  *   The validated element.
  */
 function _entity_reference_tree_widget_validate(&$element, &$form_state) {
@@ -378,10 +376,10 @@ function _entity_reference_tree_widget_validate(&$element, &$form_state) {
 /**
  * Returns an array of allowed values defined by the given view.
  *
- * @param $filter
- *   A view, in the format VIEWNAME:DISPLAYNAME
+ * @param array $element
+ *   The element to be validated.
  *
- * @return
+ * @return array
  *   An array of entity IDs ({id} => true) returned by the view.
  */
 function _entity_reference_tree_get_allowed_values($element) {
@@ -444,19 +442,19 @@ function _entity_reference_tree_get_allowed_values($element) {
  * contains the children.  It is meant to be called recursively when the widget
  * is built.
  *
- * @param $element
+ * @param array $element
  *   The main checkbox_tree element.
- * @param $entity
+ * @param $object entity
  *   An entity object.  $entity->children should be an array of the entity
  *   objects that are that entity's children.
- * @param $form_state
+ * @param array $form_state
  *   The form state.
- * @param $value
+ * @param string $value
  *   The value of the element.
- * @param $max_choices
+ * @param array $max_choices
  *   The maximum number of allowed selections.
  *
- * @return
+ * @return array
  *   A completed checkbox_tree_item element, which contains a checkbox and
  *   possibly a checkbox_tree_level element as well.
  */
@@ -541,16 +539,16 @@ function _entity_reference_tree_build_item(&$element, &$entity, $form_state, $va
  * This function returns an element that has a number of checkbox_tree_item elements
  * as children.  It is meant to be called recursively when the widget is built.
  *
- * @param $element
+ * @param array $element
  *   The main checkbox_tree element.
- * @param $entity
+ * @param object $entity
  *   An entity object.  $entity->children should be an array of the entity
  *   objects that are that entity's children.
- * @param $form_state
+ * @param array $form_state
  *   The form state.
- * @param $value
+ * @param string $value
  *   The value of the element.
- * @param $max_choices
+ * @param array $max_choices
  *   The maximum number of allowed selections.
  *
  * @return
