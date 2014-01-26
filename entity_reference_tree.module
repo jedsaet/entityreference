@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Widget used for different entities with a hierarchy stuctures to manage and display them easily.
+ */
+
 module_load_include('inc', 'entity_reference_tree', 'entity_reference_tree.widget');
 
 /**
@@ -87,15 +92,15 @@ function _entity_reference_tree_flatten($element, &$form_state) {
  *
  * This function converts a list of entities to a key/value list of options.
  *
- * @param $entities
+ * @param object $entities
  *   An array of entities IDs.
- * @param $allowed
+ * @param array $allowed
  *   An array containing the entities allowed by the filter view
- * @param $filter
+ * @param string $filter
  *   A string defining the view to filter by (only used to detect whether view
  *   filtering is enabled
  *
- * @return
+ * @return array
  *   A key/value array of entities (name => id)
  */
 function _entity_reference_tree_get_options(&$entities, &$allowed, $filter, $id, $name) {

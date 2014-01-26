@@ -18,7 +18,6 @@ Drupal.behaviors.entityReferenceTree = {
     });
     */
 
-
     $('.entity-reference-tree', context).once('entity-reference-tree', function() {
       // On page load, check whether the maximum number of choices is already selected.
       // If so, disable the other options.
@@ -35,7 +34,7 @@ Drupal.behaviors.entityReferenceTree = {
 
         //Var to track whether using checkboxes or radio buttons.
         var input_type =
-          ( $(this).has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
+          ($(this).has('input[type=checkbox]').size() > 0) ? 'checkbox' : 'radio';
 
         //Find all the checked controls.
         var checked_controls = $(this).find('input[type=' + input_type + ']:checked');
@@ -86,7 +85,7 @@ Drupal.behaviors.entityReferenceTree = {
           removeNothingSelectedMessage(track_list_container);
           var event_target = $(event.target);
           var control_id = event_target.attr('id');
-          if ( event_target.attr('checked') ) {
+          if (event_target.attr('checked')) {
             //Control checked - add item to the track list.
             label_element = event_target.next();
             addItemToTrackList(
@@ -156,12 +155,12 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
   new_item.attr('id', control_id + '_list');
 
   //Process radio controls - only one item can be selected.
-  if ( control_type == 'radio') {
+  if (control_type == 'radio') {
     //Find the existing element on the track list, if there is one.
     var current_items = track_list_container.find('li');
 
     //If there are no items on the track list, add the new item.
-    if ( current_items.size() == 0 ) {
+    if (current_items.size() == 0) {
       track_list_container.append(new_item);
     }
     else {
@@ -169,7 +168,7 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
       var current_item = $(current_items.get(0));
 
       //Is the item we want to add different from what is there?
-      if ( current_item.data('control_id') != control_id ) {
+      if (current_item.data('control_id') != control_id) {
         //Remove exiting element from track list, and add the new one.
         current_item.remove();
         track_list_container.append(new_item);
@@ -190,11 +189,11 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
     item_comparing_to = $(list_items[index]);
 
     //If item is already on the track list, do nothing.
-    if ( control_id == item_comparing_to.data('control_id') ) {
+    if (control_id == item_comparing_to.data('control_id')) {
       inserted_flag = true;
       return false; //Returning false stops the loop.
     }
-    else if ( control_id < item_comparing_to.data('control_id') ) {
+    else if (control_id < item_comparing_to.data('control_id')) {
       //Add it here.
       item_comparing_to.before(new_item);
       inserted_flag = true;
@@ -203,7 +202,7 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
   });
 
   //If not inserted yet, add new item at the end of the track list.
-  if ( ! inserted_flag ) {
+  if (!inserted_flag) {
     track_list_container.append(new_item);
   }
 }
@@ -223,9 +222,9 @@ function showNothingSelectedMessage(track_list_container) {
       message_showing
       ? track_list_container.find('li').size() - 1
       : track_list_container.find('li').size();
-  if ( num_real_items_showing == 0 ) {
+  if (num_real_items_showing == 0) {
     //No items showing, so show the message.
-    if ( ! message_showing ) {
+    if (!message_showing) {
       track_list_container.append(
           '<li class="entity_ref_tree_nothing_message">' + entityReferenceTreeNothingSelectedText + '</li>'
       );
@@ -233,7 +232,7 @@ function showNothingSelectedMessage(track_list_container) {
   }
   else { // !(num_real_items_showing == 0)
     //There are real items.
-    if ( message_showing ) {
+    if (message_showing) {
       track_list_container.find('.entity_ref_tree_nothing_message').remove();
     }
   }
@@ -268,7 +267,7 @@ function checkMaxChoices(item, checkbox) {
     if(item.hasClass('select-parents')) {
       var track_list_container = item.find('.entity-reference-tree-track-list');
       var input_type =
-          ( item.has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
+          (item.has('input[type=checkbox]').size() > 0) ? 'checkbox' : 'radio';
 
       if(checkbox.attr('checked')) {
         checkbox.parents('ul.entity-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').each(function() {

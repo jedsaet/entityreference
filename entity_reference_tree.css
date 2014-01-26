@@ -27,16 +27,13 @@
   padding: 3px;
 }
 
-.region-content ul.entity-reference-tree-level,
-.entity-reference-tree-level
-{
+.region-content ul.entity-reference-tree-level, .entity-reference-tree-level {
   padding: 0;
 }
 
 /*
  * Styles for track list of selected options.
  */
-
 .entity-reference-tree-track-list li {
   list-style-type: none;
   list-style-image: none;
@@ -69,9 +66,8 @@
 }
 
 /*
- * Styles for display element
+ * Styles for display element.
  */
-
 .entity-tree-list .selected {
   font-weight: bold;
 }
@@ -85,7 +81,7 @@
 }
 
 /*
- * Styles for display element
+ * Styles for display element.
  */
 ul.links .entity-tree-list ul.term li {
   float: none;
