@@ -1,161 +1,292 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-  
-  
+(function($) {
 
-  
+/**
+ * Attaches the tree behavior to the entity widget form.
+ */
+Drupal.behaviors.entityReferenceTree = {
+  attach: function(context, settings) {
+    // Bind the entity expand/contract button to slide toggle the list underneath.
+    $('.entity-reference-tree-button', context).once('entity-reference-tree-button').click(function() {
+      $(this).toggleClass('entity-reference-tree-collapsed');
+      $(this).siblings('ul').slideToggle('fast');
+    });
+
+    // An expand all button (unimplemented)
+    /*
+    $('.expandbutton').click(function() {
+      $(this).siblings('.entity-reference-tree-button').trigger('click');
+    });
+    */
 
 
-  <head>
-    <title>
-      entity_reference_tree.js dans webfactory/trunk/sites/all/modules/custom/entity_reference_tree.
-     – hug - intranet-tma - Trac
-    </title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <!--[if IE]><script type="text/javascript">window.location.hash = window.location.hash;</script><![endif]-->
-        <link rel="search" href="/hug/intranet-tma/trac/search" />
-        <link rel="help" href="/hug/intranet-tma/trac/wiki/TracGuide" />
-        <link rel="alternate" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js?format=txt" type="text/plain" title="Texte brut" /><link rel="alternate" href="/hug/intranet-tma/trac/export/2519/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js" type="application/javascript; charset=utf-8" title="Format original" />
-        <link rel="tracwysiwyg.base" href="/hug/intranet-tma/trac" />
-        <link rel="start" href="/hug/intranet-tma/trac/wiki" />
-        <link rel="stylesheet" href="/hug/intranet-tma/trac/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="/hug/intranet-tma/trac/chrome/common/css/code.css" type="text/css" /><link rel="stylesheet" href="/hug/intranet-tma/trac/pygments/trac.css" type="text/css" /><link rel="stylesheet" href="/hug/intranet-tma/trac/chrome/common/css/browser.css" type="text/css" /><link rel="stylesheet" href="/hug/intranet-tma/trac/chrome/tracwysiwyg/wysiwyg.css" type="text/css" />
-        <link rel="tracwysiwyg.stylesheet" href="/hug/intranet-tma/trac/chrome/common/css/trac.css" /><link rel="tracwysiwyg.stylesheet" href="/hug/intranet-tma/trac/chrome/tracwysiwyg/editor.css" />
-        <link rel="prev" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js?rev=1074" title="Révision 1074" />
-        <link rel="shortcut icon" href="/hug/intranet-tma/trac/chrome/common/trac.ico" type="image/x-icon" />
-        <link rel="icon" href="/hug/intranet-tma/trac/chrome/common/trac.ico" type="image/x-icon" />
-      <link type="application/opensearchdescription+xml" rel="search" href="/hug/intranet-tma/trac/search/opensearch" title="Rechercher dans hug - intranet-tma - Trac" />
-    <script type="text/javascript">
-      var _tracwysiwyg={"escapeNewlines":false};
-    </script>
-    <script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/jquery.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/babel.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/messages/fr.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/trac.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/search.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/tracwysiwyg/wysiwyg.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/tracwysiwyg/wysiwyg-load.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/tracsectionedit/js/tracsectionedit.js"></script>
-    <!--[if lt IE 7]>
-    <script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/ie_pre7_hacks.js"></script>
-    <![endif]-->
-    <script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/folding.js"></script>
-    <script type="text/javascript">
-      jQuery(document).ready(function($) {
-        $(".trac-toggledeleted").show().click(function() {
-                  $(this).siblings().find(".trac-deleted").toggle();
-                  return false;
-        }).click();
-        $("#jumploc input").hide();
-        $("#jumploc select").change(function () {
-          this.parentNode.parentNode.submit();
-        });
-          $('#preview table.code').enableCollapsibleColumns($('#preview table.code thead th.content'));
+    $('.entity-reference-tree', context).once('entity-reference-tree', function() {
+      // On page load, check whether the maximum number of choices is already selected.
+      // If so, disable the other options.
+      var tree = $(this);
+      checkMaxChoices(tree, false);
+      $(this).find('input[type=checkbox]').change(function() {
+        checkMaxChoices(tree, $(this));
       });
-    </script>
-    <link rel="stylesheet" type="text/css" href="/hug/intranet-tma/trac/chrome/site/css/trac.css" />
-      <link rel="stylesheet" type="text/css" href="/hug/intranet-tma/trac/chrome/site/css/browser.css" />
-   </head>
-  <body>
-    <div id="banner">
-      <div id="header">
-        <a id="logo" href="https://projects.clever-age.net/hug/intranet-tma/trac/wiki"><img src="http://www.hug-ge.ch/images/logo_hug.gif" alt="Clever Box HUG" /></a>
-      </div>
-      <form id="search" action="/hug/intranet-tma/trac/search" method="get">
-        <div>
-          <label for="proj-search">Recherche :</label>
-          <input type="text" id="proj-search" name="q" size="18" value="" />
-          <input type="submit" value="Recherche" />
-        </div>
-      </form>
-      <div id="metanav" class="nav">
-    <ul>
-      <li class="first">Connecté en tant qu'utilisateur fredrik.lahode</li><li><a href="/hug/intranet-tma/trac/logout">Déconnexion</a></li><li><a href="/hug/intranet-tma/trac/prefs">Préférences</a></li><li><a href="/hug/intranet-tma/trac/wiki/TracGuide">Aide / Guide</a></li><li><a href="/hug/intranet-tma/trac/about">À propos de Trac</a></li><li class="last"><a href="/hug/intranet-tma/trac/capassword">Password</a></li>
-    </ul>
-  </div>
-    </div>
-    <div id="mainnav" class="nav">
-    <ul>
-      <li class="first"><a href="/hug/intranet-tma/trac/wiki">Wiki</a></li><li><a href="/hug/intranet-tma/trac/timeline">Activité</a></li><li><a href="/hug/intranet-tma/trac/roadmap">Feuille de route</a></li><li class="active"><a href="/hug/intranet-tma/trac/browser">Explorateur de source</a></li><li><a href="/hug/intranet-tma/trac/report">Voir les tickets</a></li><li><a href="/hug/intranet-tma/trac/newticket">Nouveau ticket</a></li><li><a href="/hug/intranet-tma/trac/search">Recherche</a></li><li class="last"><a href="/hug/intranet-tma/trac/billing">Management</a></li>
-    </ul>
-  </div>
-    <div id="main">
-      <div id="ctxtnav" class="nav">
-        <h2>Navigation contextuelle</h2>
-          <ul>
-              <li class="first"><span>&larr; <a class="prev" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js?rev=1074" title="Révision 1074">Révision précédente</a></span></li><li><span class="missing">Révision suivante &rarr;</span></li><li><a href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js?annotate=blame" title="Annoter chaque ligne avec la révision de la dernière modification (ce procédé peut-être coûteux en temps...)">Annoter</a></li><li class="last"><a href="/hug/intranet-tma/trac/log/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js">Journal des révisions</a></li>
-          </ul>
-        <hr />
-      </div>
-    <div id="content" class="browser">
-          <h1>
-<a class="pathentry first" href="/hug/intranet-tma/trac/browser?order=name" title="Aller à la racine du dépôt">source:</a>
-<a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory?order=name" title="Voir webfactory">webfactory</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk?order=name" title="Voir trunk">trunk</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites?order=name" title="Voir sites">sites</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all?order=name" title="Voir all">all</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules?order=name" title="Voir modules">modules</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom?order=name" title="Voir custom">custom</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree?order=name" title="Voir entity_reference_tree">entity_reference_tree</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js?order=name" title="Voir entity_reference_tree.js">entity_reference_tree.js</a>
-<span class="pathentry sep">@</span>
-  <a class="pathentry" href="/hug/intranet-tma/trac/changeset/2519" title="Voir la révision 2519">2519</a>
-<br style="clear: both" />
-</h1>
-        <div id="jumprev">
-          <form action="" method="get">
-            <div>
-              <label for="rev">
-                Afficher la révision :</label>
-              <input type="text" id="rev" name="rev" size="6" />
-            </div>
-          </form>
-        </div>
-        <div id="jumploc">
-          <form action="" method="get">
-            <div class="buttons">
-              <label for="preselected">Explorer :</label>
-              <select id="preselected" name="preselected">
-                <option selected="selected"></option>
-                <optgroup label="branches">
-                  <option value="/hug/intranet-tma/trac/browser/trunk">trunk</option>
-                </optgroup>
-              </select>
-              <input type="submit" value="Aller" title="Saut direct au chemin préselectionné" />
-            </div>
-          </form>
-        </div>
-      <table id="info" summary="Info révision">
-        <tr>
-          <th scope="col">Révision <a href="/hug/intranet-tma/trac/changeset/2161">2161</a>,
-            <span title="11153 octets">10.9 KB</span>
-            produite par fredrik.lahode, il y a <a class="timeline" href="/hug/intranet-tma/trac/timeline?from=2014-01-14T17%3A04%3A32%2B01%3A00&amp;precision=second" title="2014-01-14T17:04:32+01:00 dans « Activité »">4 mois</a>
-            (<a href="/hug/intranet-tma/trac/changeset/2161/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js">différences</a>)</th>
-        </tr>
-        <tr>
-          <td class="message searchable">
-          </td>
-        </tr>
-      </table>
-      <div id="preview" class="searchable">
-        
-  <table class="code"><thead><tr><th class="lineno" title="Numéros de lignes">Ligne</th><th class="content"> </th></tr></thead><tbody><tr><th id="L1"><a href="#L1">1</a></th><td><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">$</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L2"><a href="#L2">2</a></th><td></td></tr><tr><th id="L3"><a href="#L3">3</a></th><td><span class="cm">/**</span></td></tr><tr><th id="L4"><a href="#L4">4</a></th><td><span class="cm"> * Attaches the tree behavior to the entity widget form.</span></td></tr><tr><th id="L5"><a href="#L5">5</a></th><td><span class="cm"> */</span></td></tr><tr><th id="L6"><a href="#L6">6</a></th><td><span class="nx">Drupal</span><span class="p">.</span><span class="nx">behaviors</span><span class="p">.</span><span class="nx">entityReferenceTree</span> <span class="o">=</span> <span class="p">{</span></td></tr><tr><th id="L7"><a href="#L7">7</a></th><td>  <span class="nx">attach</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">context</span><span class="p">,</span> <span class="nx">settings</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L8"><a href="#L8">8</a></th><td>    <span class="c1">// Bind the entity expand/contract button to slide toggle the list underneath.</span></td></tr><tr><th id="L9"><a href="#L9">9</a></th><td><span class="c1"></span>    <span class="nx">$</span><span class="p">(</span><span class="s1">'.entity-reference-tree-button'</span><span class="p">,</span> <span class="nx">context</span><span class="p">).</span><span class="nx">once</span><span class="p">(</span><span class="s1">'entity-reference-tree-button'</span><span class="p">).</span><span class="nx">click</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span></td></tr><tr><th id="L10"><a href="#L10">10</a></th><td>      <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">toggleClass</span><span class="p">(</span><span class="s1">'entity-reference-tree-collapsed'</span><span class="p">);</span></td></tr><tr><th id="L11"><a href="#L11">11</a></th><td>      <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">siblings</span><span class="p">(</span><span class="s1">'ul'</span><span class="p">).</span><span class="nx">slideToggle</span><span class="p">(</span><span class="s1">'fast'</span><span class="p">);</span></td></tr><tr><th id="L12"><a href="#L12">12</a></th><td>    <span class="p">});</span></td></tr><tr><th id="L13"><a href="#L13">13</a></th><td></td></tr><tr><th id="L14"><a href="#L14">14</a></th><td>    <span class="c1">// An expand all button (unimplemented)</span></td></tr><tr><th id="L15"><a href="#L15">15</a></th><td><span class="c1"></span>    <span class="cm">/*</span></td></tr><tr><th id="L16"><a href="#L16">16</a></th><td><span class="cm">    $('.expandbutton').click(function() {</span></td></tr><tr><th id="L17"><a href="#L17">17</a></th><td><span class="cm">      $(this).siblings('.entity-reference-tree-button').trigger('click');</span></td></tr><tr><th id="L18"><a href="#L18">18</a></th><td><span class="cm">    });</span></td></tr><tr><th id="L19"><a href="#L19">19</a></th><td><span class="cm">    */</span></td></tr><tr><th id="L20"><a href="#L20">20</a></th><td></td></tr><tr><th id="L21"><a href="#L21">21</a></th><td></td></tr><tr><th id="L22"><a href="#L22">22</a></th><td>    <span class="nx">$</span><span class="p">(</span><span class="s1">'.entity-reference-tree'</span><span class="p">,</span> <span class="nx">context</span><span class="p">).</span><span class="nx">once</span><span class="p">(</span><span class="s1">'entity-reference-tree'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span></td></tr><tr><th id="L23"><a href="#L23">23</a></th><td>      <span class="c1">// On page load, check whether the maximum number of choices is already selected.</span></td></tr><tr><th id="L24"><a href="#L24">24</a></th><td><span class="c1"></span>      <span class="c1">// If so, disable the other options.</span></td></tr><tr><th id="L25"><a href="#L25">25</a></th><td><span class="c1"></span>      <span class="kd">var</span> <span class="nx">tree</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">);</span></td></tr><tr><th id="L26"><a href="#L26">26</a></th><td>      <span class="nx">checkMaxChoices</span><span class="p">(</span><span class="nx">tree</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span></td></tr><tr><th id="L27"><a href="#L27">27</a></th><td>      <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">find</span><span class="p">(</span><span class="s1">'input[type=checkbox]'</span><span class="p">).</span><span class="nx">change</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span></td></tr><tr><th id="L28"><a href="#L28">28</a></th><td>        <span class="nx">checkMaxChoices</span><span class="p">(</span><span class="nx">tree</span><span class="p">,</span> <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">));</span></td></tr><tr><th id="L29"><a href="#L29">29</a></th><td>      <span class="p">});</span></td></tr><tr><th id="L30"><a href="#L30">30</a></th><td></td></tr><tr><th id="L31"><a href="#L31">31</a></th><td>      <span class="c1">//On page load, check if the user wants a track list. If so, add the</span></td></tr><tr><th id="L32"><a href="#L32">32</a></th><td><span class="c1"></span>      <span class="c1">//currently selected items to it.</span></td></tr><tr><th id="L33"><a href="#L33">33</a></th><td><span class="c1"></span>      <span class="k">if</span><span class="p">(</span><span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">hasClass</span><span class="p">(</span><span class="s1">'entity-reference-tree-track-list-shown'</span><span class="p">))</span> <span class="p">{</span></td></tr><tr><th id="L34"><a href="#L34">34</a></th><td>        <span class="kd">var</span> <span class="nx">track_list_container</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">find</span><span class="p">(</span><span class="s1">'.entity-reference-tree-track-list'</span><span class="p">);</span></td></tr><tr><th id="L35"><a href="#L35">35</a></th><td></td></tr><tr><th id="L36"><a href="#L36">36</a></th><td>        <span class="c1">//Var to track whether using checkboxes or radio buttons.</span></td></tr><tr><th id="L37"><a href="#L37">37</a></th><td><span class="c1"></span>        <span class="kd">var</span> <span class="nx">input_type</span> <span class="o">=</span></td></tr><tr><th id="L38"><a href="#L38">38</a></th><td>          <span class="p">(</span> <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">has</span><span class="p">(</span><span class="s1">'input[type=checkbox]'</span><span class="p">).</span><span class="nx">size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="o">?</span> <span class="s1">'checkbox'</span> <span class="o">:</span> <span class="s1">'radio'</span><span class="p">;</span></td></tr><tr><th id="L39"><a href="#L39">39</a></th><td></td></tr><tr><th id="L40"><a href="#L40">40</a></th><td>        <span class="c1">//Find all the checked controls.</span></td></tr><tr><th id="L41"><a href="#L41">41</a></th><td><span class="c1"></span>        <span class="kd">var</span> <span class="nx">checked_controls</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">find</span><span class="p">(</span><span class="s1">'input[type='</span> <span class="o">+</span> <span class="nx">input_type</span> <span class="o">+</span> <span class="s1">']:checked'</span><span class="p">);</span></td></tr><tr><th id="L42"><a href="#L42">42</a></th><td></td></tr><tr><th id="L43"><a href="#L43">43</a></th><td>        <span class="c1">//Get their labels.</span></td></tr><tr><th id="L44"><a href="#L44">44</a></th><td><span class="c1"></span>        <span class="kd">var</span> <span class="nx">labels</span> <span class="o">=</span> <span class="nx">checked_controls</span><span class="p">.</span><span class="nx">next</span><span class="p">();</span></td></tr><tr><th id="L45"><a href="#L45">45</a></th><td>        <span class="kd">var</span> <span class="nx">label_element</span><span class="p">;</span></td></tr><tr><th id="L46"><a href="#L46">46</a></th><td></td></tr><tr><th id="L47"><a href="#L47">47</a></th><td>        <span class="c1">//For each label of the checked boxes, add item to the track list.</span></td></tr><tr><th id="L48"><a href="#L48">48</a></th><td><span class="c1"></span>        <span class="nx">labels</span><span class="p">.</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">index</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L49"><a href="#L49">49</a></th><td>          <span class="nx">label_element</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="nx">labels</span><span class="p">[</span><span class="nx">index</span><span class="p">]);</span></td></tr><tr><th id="L50"><a href="#L50">50</a></th><td>          <span class="nx">addItemToTrackList</span><span class="p">(</span></td></tr><tr><th id="L51"><a href="#L51">51</a></th><td>            <span class="nx">track_list_container</span><span class="p">,</span>         <span class="c1">//Where to add new item.</span></td></tr><tr><th id="L52"><a href="#L52">52</a></th><td><span class="c1"></span>            <span class="nx">label_element</span><span class="p">.</span><span class="nx">html</span><span class="p">(),</span>         <span class="c1">//Text of new item.</span></td></tr><tr><th id="L53"><a href="#L53">53</a></th><td><span class="c1"></span>            <span class="nx">$</span><span class="p">(</span><span class="nx">label_element</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'for'</span><span class="p">),</span> <span class="c1">//Id of control new item is for.</span></td></tr><tr><th id="L54"><a href="#L54">54</a></th><td><span class="c1"></span>            <span class="nx">input_type</span>                    <span class="c1">//checkbox or radio</span></td></tr><tr><th id="L55"><a href="#L55">55</a></th><td><span class="c1"></span>          <span class="p">);</span></td></tr><tr><th id="L56"><a href="#L56">56</a></th><td>        <span class="p">});</span> <span class="c1">//End labels.each</span></td></tr><tr><th id="L57"><a href="#L57">57</a></th><td><span class="c1"></span></td></tr><tr><th id="L58"><a href="#L58">58</a></th><td>        <span class="c1">//Show "nothing selected" message, if needed.</span></td></tr><tr><th id="L59"><a href="#L59">59</a></th><td><span class="c1"></span>        <span class="nx">showNothingSelectedMessage</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">);</span></td></tr><tr><th id="L60"><a href="#L60">60</a></th><td></td></tr><tr><th id="L61"><a href="#L61">61</a></th><td>        <span class="c1">//Event - when an element on the track list is clicked on:</span></td></tr><tr><th id="L62"><a href="#L62">62</a></th><td><span class="c1"></span>        <span class="c1">//  1. Delete it.</span></td></tr><tr><th id="L63"><a href="#L63">63</a></th><td><span class="c1"></span>        <span class="c1">//  2. Uncheck the associated checkbox.</span></td></tr><tr><th id="L64"><a href="#L64">64</a></th><td><span class="c1"></span>        <span class="c1">//The event is bound to the track list container, not each element.</span></td></tr><tr><th id="L65"><a href="#L65">65</a></th><td><span class="c1"></span>        <span class="nx">$</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">).</span><span class="nx">click</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">){</span></td></tr><tr><th id="L66"><a href="#L66">66</a></th><td>          <span class="c1">//Remove the "nothing selected" message if showing - add it later if needed.</span></td></tr><tr><th id="L67"><a href="#L67">67</a></th><td><span class="c1"></span>          <span class="c1">//removeNothingSelectedMessage(track_list_container);</span></td></tr><tr><th id="L68"><a href="#L68">68</a></th><td><span class="c1"></span>          <span class="kd">var</span> <span class="nx">event_target</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">target</span><span class="p">);</span></td></tr><tr><th id="L69"><a href="#L69">69</a></th><td>          <span class="kd">var</span> <span class="nx">control_id</span> <span class="o">=</span> <span class="nx">event_target</span><span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="s1">'control_id'</span><span class="p">);</span></td></tr><tr><th id="L70"><a href="#L70">70</a></th><td></td></tr><tr><th id="L71"><a href="#L71">71</a></th><td>          <span class="k">if</span><span class="p">(</span><span class="nx">control_id</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L72"><a href="#L72">72</a></th><td>            <span class="nx">event_target</span><span class="p">.</span><span class="nx">remove</span><span class="p">();</span></td></tr><tr><th id="L73"><a href="#L73">73</a></th><td></td></tr><tr><th id="L74"><a href="#L74">74</a></th><td>            <span class="kd">var</span> <span class="nx">checkbox</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'#'</span> <span class="o">+</span> <span class="nx">control_id</span><span class="p">);</span></td></tr><tr><th id="L75"><a href="#L75">75</a></th><td>            <span class="nx">checkbox</span><span class="p">.</span><span class="nx">removeAttr</span><span class="p">(</span><span class="s1">'checked'</span><span class="p">);</span></td></tr><tr><th id="L76"><a href="#L76">76</a></th><td>            <span class="nx">checkMaxChoices</span><span class="p">(</span><span class="nx">tree</span><span class="p">,</span> <span class="nx">checkbox</span><span class="p">);</span></td></tr><tr><th id="L77"><a href="#L77">77</a></th><td></td></tr><tr><th id="L78"><a href="#L78">78</a></th><td>            <span class="c1">//Show "nothing selected" message, if needed.</span></td></tr><tr><th id="L79"><a href="#L79">79</a></th><td><span class="c1"></span>            <span class="nx">showNothingSelectedMessage</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">);</span></td></tr><tr><th id="L80"><a href="#L80">80</a></th><td>          <span class="p">}</span></td></tr><tr><th id="L81"><a href="#L81">81</a></th><td>        <span class="p">});</span></td></tr><tr><th id="L82"><a href="#L82">82</a></th><td></td></tr><tr><th id="L83"><a href="#L83">83</a></th><td>        <span class="c1">//Change track list when controls are clicked.</span></td></tr><tr><th id="L84"><a href="#L84">84</a></th><td><span class="c1"></span>        <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">find</span><span class="p">(</span><span class="s1">'.form-'</span> <span class="o">+</span> <span class="nx">input_type</span><span class="p">).</span><span class="nx">change</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">){</span></td></tr><tr><th id="L85"><a href="#L85">85</a></th><td>          <span class="c1">//Remove the "nothing selected" message if showing - add it later if needed.</span></td></tr><tr><th id="L86"><a href="#L86">86</a></th><td><span class="c1"></span>          <span class="nx">removeNothingSelectedMessage</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">);</span></td></tr><tr><th id="L87"><a href="#L87">87</a></th><td>          <span class="kd">var</span> <span class="nx">event_target</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">target</span><span class="p">);</span></td></tr><tr><th id="L88"><a href="#L88">88</a></th><td>          <span class="kd">var</span> <span class="nx">control_id</span> <span class="o">=</span> <span class="nx">event_target</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'id'</span><span class="p">);</span></td></tr><tr><th id="L89"><a href="#L89">89</a></th><td>          <span class="k">if</span> <span class="p">(</span> <span class="nx">event_target</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'checked'</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L90"><a href="#L90">90</a></th><td>            <span class="c1">//Control checked - add item to the track list.</span></td></tr><tr><th id="L91"><a href="#L91">91</a></th><td><span class="c1"></span>            <span class="nx">label_element</span> <span class="o">=</span> <span class="nx">event_target</span><span class="p">.</span><span class="nx">next</span><span class="p">();</span></td></tr><tr><th id="L92"><a href="#L92">92</a></th><td>            <span class="nx">addItemToTrackList</span><span class="p">(</span></td></tr><tr><th id="L93"><a href="#L93">93</a></th><td>              <span class="nx">track_list_container</span><span class="p">,</span>         <span class="c1">//Where to add new item.</span></td></tr><tr><th id="L94"><a href="#L94">94</a></th><td><span class="c1"></span>              <span class="nx">label_element</span><span class="p">.</span><span class="nx">html</span><span class="p">(),</span>         <span class="c1">//Text of new item.</span></td></tr><tr><th id="L95"><a href="#L95">95</a></th><td><span class="c1"></span>              <span class="nx">$</span><span class="p">(</span><span class="nx">label_element</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'for'</span><span class="p">),</span> <span class="c1">//Id of control new item is for.</span></td></tr><tr><th id="L96"><a href="#L96">96</a></th><td><span class="c1"></span>              <span class="nx">input_type</span>                    <span class="c1">//checkbox or radio</span></td></tr><tr><th id="L97"><a href="#L97">97</a></th><td><span class="c1"></span>            <span class="p">);</span></td></tr><tr><th id="L98"><a href="#L98">98</a></th><td>          <span class="p">}</span></td></tr><tr><th id="L99"><a href="#L99">99</a></th><td>          <span class="k">else</span> <span class="p">{</span></td></tr><tr><th id="L100"><a href="#L100">100</a></th><td>            <span class="c1">//Checkbox unchecked. Remove from the track list.</span></td></tr><tr><th id="L101"><a href="#L101">101</a></th><td><span class="c1"></span>            <span class="nx">$</span><span class="p">(</span><span class="s1">'#'</span> <span class="o">+</span> <span class="nx">control_id</span> <span class="o">+</span> <span class="s1">'_list'</span><span class="p">).</span><span class="nx">remove</span><span class="p">();</span></td></tr><tr><th id="L102"><a href="#L102">102</a></th><td>          <span class="p">}</span></td></tr><tr><th id="L103"><a href="#L103">103</a></th><td></td></tr><tr><th id="L104"><a href="#L104">104</a></th><td>          <span class="c1">//Show "nothing selected" message, if needed.</span></td></tr><tr><th id="L105"><a href="#L105">105</a></th><td><span class="c1"></span>          <span class="nx">showNothingSelectedMessage</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">);</span></td></tr><tr><th id="L106"><a href="#L106">106</a></th><td>        <span class="p">});</span> <span class="c1">//End process checkbox changes.</span></td></tr><tr><th id="L107"><a href="#L107">107</a></th><td><span class="c1"></span>      <span class="p">}</span> <span class="c1">//End Want a track list.</span></td></tr><tr><th id="L108"><a href="#L108">108</a></th><td><span class="c1"></span></td></tr><tr><th id="L109"><a href="#L109">109</a></th><td>      <span class="c1">//On page load, check if the user wants a cascading selection.</span></td></tr><tr><th id="L110"><a href="#L110">110</a></th><td><span class="c1"></span>      <span class="k">if</span><span class="p">(</span><span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">hasClass</span><span class="p">(</span><span class="s1">'entity-reference-tree-cascading-selection'</span><span class="p">))</span> <span class="p">{</span></td></tr><tr><th id="L111"><a href="#L111">111</a></th><td></td></tr><tr><th id="L112"><a href="#L112">112</a></th><td>        <span class="c1">//Check children when checkboxes are clicked.</span></td></tr><tr><th id="L113"><a href="#L113">113</a></th><td><span class="c1"></span>        <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">find</span><span class="p">(</span><span class="s1">'.form-checkbox'</span><span class="p">).</span><span class="nx">change</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L114"><a href="#L114">114</a></th><td>          <span class="kd">var</span> <span class="nx">event_target</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">target</span><span class="p">);</span></td></tr><tr><th id="L115"><a href="#L115">115</a></th><td>          <span class="kd">var</span> <span class="nx">control_id</span> <span class="o">=</span> <span class="nx">event_target</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'id'</span><span class="p">);</span></td></tr><tr><th id="L116"><a href="#L116">116</a></th><td>          <span class="kd">var</span> <span class="nx">children</span> <span class="o">=</span> <span class="nx">event_target</span><span class="p">.</span><span class="nx">parent</span><span class="p">().</span><span class="nx">next</span><span class="p">().</span><span class="nx">children</span><span class="p">().</span><span class="nx">children</span><span class="p">(</span><span class="s1">'div.form-type-checkbox'</span><span class="p">).</span><span class="nx">children</span><span class="p">(</span><span class="s1">'input[id^="'</span> <span class="o">+</span> <span class="nx">control_id</span> <span class="o">+</span> <span class="s1">'-children"]'</span><span class="p">);</span></td></tr><tr><th id="L117"><a href="#L117">117</a></th><td>          <span class="k">if</span><span class="p">(</span><span class="nx">event_target</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'checked'</span><span class="p">))</span> <span class="p">{</span></td></tr><tr><th id="L118"><a href="#L118">118</a></th><td>            <span class="c1">//Checkbox checked - check children if none were checked.</span></td></tr><tr><th id="L119"><a href="#L119">119</a></th><td><span class="c1"></span>            <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">$</span><span class="p">(</span><span class="nx">children</span><span class="p">).</span><span class="nx">filter</span><span class="p">(</span><span class="s1">':checked'</span><span class="p">).</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L120"><a href="#L120">120</a></th><td>              <span class="nx">$</span><span class="p">(</span><span class="nx">children</span><span class="p">).</span><span class="nx">click</span><span class="p">().</span><span class="nx">trigger</span><span class="p">(</span><span class="s1">'change'</span><span class="p">);</span></td></tr><tr><th id="L121"><a href="#L121">121</a></th><td>            <span class="p">}</span></td></tr><tr><th id="L122"><a href="#L122">122</a></th><td>          <span class="p">}</span></td></tr><tr><th id="L123"><a href="#L123">123</a></th><td>          <span class="k">else</span> <span class="p">{</span></td></tr><tr><th id="L124"><a href="#L124">124</a></th><td>            <span class="c1">//Checkbox unchecked. Uncheck children if all were checked.</span></td></tr><tr><th id="L125"><a href="#L125">125</a></th><td><span class="c1"></span>            <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">$</span><span class="p">(</span><span class="nx">children</span><span class="p">).</span><span class="nx">not</span><span class="p">(</span><span class="s1">':checked'</span><span class="p">).</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L126"><a href="#L126">126</a></th><td>              <span class="nx">$</span><span class="p">(</span><span class="nx">children</span><span class="p">).</span><span class="nx">click</span><span class="p">().</span><span class="nx">trigger</span><span class="p">(</span><span class="s1">'change'</span><span class="p">);</span></td></tr><tr><th id="L127"><a href="#L127">127</a></th><td>            <span class="p">}</span></td></tr><tr><th id="L128"><a href="#L128">128</a></th><td>          <span class="p">}</span></td></tr><tr><th id="L129"><a href="#L129">129</a></th><td></td></tr><tr><th id="L130"><a href="#L130">130</a></th><td>        <span class="p">});</span></td></tr><tr><th id="L131"><a href="#L131">131</a></th><td>        <span class="c1">//End process checkbox changes.</span></td></tr><tr><th id="L132"><a href="#L132">132</a></th><td><span class="c1"></span>      <span class="p">}</span> <span class="c1">//End Want a cascading checking.</span></td></tr><tr><th id="L133"><a href="#L133">133</a></th><td><span class="c1"></span></td></tr><tr><th id="L134"><a href="#L134">134</a></th><td>    <span class="p">});</span></td></tr><tr><th id="L135"><a href="#L135">135</a></th><td>  <span class="p">}</span></td></tr><tr><th id="L136"><a href="#L136">136</a></th><td><span class="p">};</span></td></tr><tr><th id="L137"><a href="#L137">137</a></th><td></td></tr><tr><th id="L138"><a href="#L138">138</a></th><td><span class="cm">/**</span></td></tr><tr><th id="L139"><a href="#L139">139</a></th><td><span class="cm"> * Add a new item to the track list.</span></td></tr><tr><th id="L140"><a href="#L140">140</a></th><td><span class="cm"> * If more than one item can be selected, the new item is positioned to</span></td></tr><tr><th id="L141"><a href="#L141">141</a></th><td><span class="cm"> * match the order of the entitys in the checkbox tree.</span></td></tr><tr><th id="L142"><a href="#L142">142</a></th><td><span class="cm"> *</span></td></tr><tr><th id="L143"><a href="#L143">143</a></th><td><span class="cm"> * @param track_list_container Container where the new item will be added.</span></td></tr><tr><th id="L144"><a href="#L144">144</a></th><td><span class="cm"> *</span></td></tr><tr><th id="L145"><a href="#L145">145</a></th><td><span class="cm"> * @param item_text Text of the item to add.</span></td></tr><tr><th id="L146"><a href="#L146">146</a></th><td><span class="cm"> *</span></td></tr><tr><th id="L147"><a href="#L147">147</a></th><td><span class="cm"> * @param control_id Id of the checkbox/radio control the item matches.</span></td></tr><tr><th id="L148"><a href="#L148">148</a></th><td><span class="cm"> *</span></td></tr><tr><th id="L149"><a href="#L149">149</a></th><td><span class="cm"> * @param control_type Control type - 'checkbox' or 'radio'.</span></td></tr><tr><th id="L150"><a href="#L150">150</a></th><td><span class="cm"> */</span></td></tr><tr><th id="L151"><a href="#L151">151</a></th><td><span class="kd">function</span> <span class="nx">addItemToTrackList</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">,</span> <span class="nx">item_text</span><span class="p">,</span> <span class="nx">control_id</span><span class="p">,</span> <span class="nx">control_type</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L152"><a href="#L152">152</a></th><td>  <span class="kd">var</span> <span class="nx">new_item</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'&lt;li class="track-item"&gt;'</span> <span class="o">+</span> <span class="nx">item_text</span> <span class="o">+</span> <span class="s1">'&lt;/li&gt;'</span><span class="p">);</span></td></tr><tr><th id="L153"><a href="#L153">153</a></th><td>  <span class="nx">new_item</span><span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="s1">'control_id'</span><span class="p">,</span> <span class="nx">control_id</span><span class="p">);</span></td></tr><tr><th id="L154"><a href="#L154">154</a></th><td></td></tr><tr><th id="L155"><a href="#L155">155</a></th><td>  <span class="c1">//Add an id for easy finding of the item.</span></td></tr><tr><th id="L156"><a href="#L156">156</a></th><td><span class="c1"></span>  <span class="nx">new_item</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'id'</span><span class="p">,</span> <span class="nx">control_id</span> <span class="o">+</span> <span class="s1">'_list'</span><span class="p">);</span></td></tr><tr><th id="L157"><a href="#L157">157</a></th><td></td></tr><tr><th id="L158"><a href="#L158">158</a></th><td>  <span class="c1">//Process radio controls - only one item can be selected.</span></td></tr><tr><th id="L159"><a href="#L159">159</a></th><td><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span> <span class="nx">control_type</span> <span class="o">==</span> <span class="s1">'radio'</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L160"><a href="#L160">160</a></th><td>    <span class="c1">//Find the existing element on the track list, if there is one.</span></td></tr><tr><th id="L161"><a href="#L161">161</a></th><td><span class="c1"></span>    <span class="kd">var</span> <span class="nx">current_items</span> <span class="o">=</span> <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'li'</span><span class="p">);</span></td></tr><tr><th id="L162"><a href="#L162">162</a></th><td></td></tr><tr><th id="L163"><a href="#L163">163</a></th><td>    <span class="c1">//If there are no items on the track list, add the new item.</span></td></tr><tr><th id="L164"><a href="#L164">164</a></th><td><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span> <span class="nx">current_items</span><span class="p">.</span><span class="nx">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L165"><a href="#L165">165</a></th><td>      <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="nx">new_item</span><span class="p">);</span></td></tr><tr><th id="L166"><a href="#L166">166</a></th><td>    <span class="p">}</span></td></tr><tr><th id="L167"><a href="#L167">167</a></th><td>    <span class="k">else</span> <span class="p">{</span></td></tr><tr><th id="L168"><a href="#L168">168</a></th><td>      <span class="c1">//There is an item on the list.</span></td></tr><tr><th id="L169"><a href="#L169">169</a></th><td><span class="c1"></span>      <span class="kd">var</span> <span class="nx">current_item</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="nx">current_items</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span></td></tr><tr><th id="L170"><a href="#L170">170</a></th><td></td></tr><tr><th id="L171"><a href="#L171">171</a></th><td>      <span class="c1">//Is the item we want to add different from what is there?</span></td></tr><tr><th id="L172"><a href="#L172">172</a></th><td><span class="c1"></span>      <span class="k">if</span> <span class="p">(</span> <span class="nx">current_item</span><span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="s1">'control_id'</span><span class="p">)</span> <span class="o">!=</span> <span class="nx">control_id</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L173"><a href="#L173">173</a></th><td>        <span class="c1">//Remove exiting element from track list, and add the new one.</span></td></tr><tr><th id="L174"><a href="#L174">174</a></th><td><span class="c1"></span>        <span class="nx">current_item</span><span class="p">.</span><span class="nx">remove</span><span class="p">();</span></td></tr><tr><th id="L175"><a href="#L175">175</a></th><td>        <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="nx">new_item</span><span class="p">);</span></td></tr><tr><th id="L176"><a href="#L176">176</a></th><td>      <span class="p">}</span></td></tr><tr><th id="L177"><a href="#L177">177</a></th><td>    <span class="p">}</span></td></tr><tr><th id="L178"><a href="#L178">178</a></th><td>    <span class="k">return</span><span class="p">;</span></td></tr><tr><th id="L179"><a href="#L179">179</a></th><td>  <span class="p">}</span></td></tr><tr><th id="L180"><a href="#L180">180</a></th><td></td></tr><tr><th id="L181"><a href="#L181">181</a></th><td>  <span class="c1">//Using checkboxes, so there can be more than one selected item.</span></td></tr><tr><th id="L182"><a href="#L182">182</a></th><td><span class="c1"></span>  <span class="c1">//Find the right place to put the new item, to match the order of the</span></td></tr><tr><th id="L183"><a href="#L183">183</a></th><td><span class="c1"></span>  <span class="c1">//checkboxes.</span></td></tr><tr><th id="L184"><a href="#L184">184</a></th><td><span class="c1"></span>  <span class="kd">var</span> <span class="nx">list_items</span> <span class="o">=</span> <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'li'</span><span class="p">);</span></td></tr><tr><th id="L185"><a href="#L185">185</a></th><td>  <span class="kd">var</span> <span class="nx">item_comparing_to</span><span class="p">;</span></td></tr><tr><th id="L186"><a href="#L186">186</a></th><td></td></tr><tr><th id="L187"><a href="#L187">187</a></th><td>  <span class="c1">//Flag to tell whether the item was inserted.</span></td></tr><tr><th id="L188"><a href="#L188">188</a></th><td><span class="c1"></span>  <span class="kd">var</span> <span class="nx">inserted_flag</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span></td></tr><tr><th id="L189"><a href="#L189">189</a></th><td>  <span class="nx">list_items</span><span class="p">.</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">index</span><span class="p">){</span></td></tr><tr><th id="L190"><a href="#L190">190</a></th><td>    <span class="nx">item_comparing_to</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="nx">list_items</span><span class="p">[</span><span class="nx">index</span><span class="p">]);</span></td></tr><tr><th id="L191"><a href="#L191">191</a></th><td></td></tr><tr><th id="L192"><a href="#L192">192</a></th><td>    <span class="c1">//If item is already on the track list, do nothing.</span></td></tr><tr><th id="L193"><a href="#L193">193</a></th><td><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span> <span class="nx">control_id</span> <span class="o">==</span> <span class="nx">item_comparing_to</span><span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="s1">'control_id'</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L194"><a href="#L194">194</a></th><td>      <span class="nx">inserted_flag</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span></td></tr><tr><th id="L195"><a href="#L195">195</a></th><td>      <span class="k">return</span> <span class="kc">false</span><span class="p">;</span> <span class="c1">//Returning false stops the loop.</span></td></tr><tr><th id="L196"><a href="#L196">196</a></th><td><span class="c1"></span>    <span class="p">}</span></td></tr><tr><th id="L197"><a href="#L197">197</a></th><td>    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span> <span class="nx">control_id</span> <span class="o">&lt;</span> <span class="nx">item_comparing_to</span><span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="s1">'control_id'</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L198"><a href="#L198">198</a></th><td>      <span class="c1">//Add it here.</span></td></tr><tr><th id="L199"><a href="#L199">199</a></th><td><span class="c1"></span>      <span class="nx">item_comparing_to</span><span class="p">.</span><span class="nx">before</span><span class="p">(</span><span class="nx">new_item</span><span class="p">);</span></td></tr><tr><th id="L200"><a href="#L200">200</a></th><td>      <span class="nx">inserted_flag</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span></td></tr><tr><th id="L201"><a href="#L201">201</a></th><td>      <span class="k">return</span> <span class="kc">false</span><span class="p">;</span> <span class="c1">//Returning false stops the loop.</span></td></tr><tr><th id="L202"><a href="#L202">202</a></th><td><span class="c1"></span>    <span class="p">}</span></td></tr><tr><th id="L203"><a href="#L203">203</a></th><td>  <span class="p">});</span></td></tr><tr><th id="L204"><a href="#L204">204</a></th><td></td></tr><tr><th id="L205"><a href="#L205">205</a></th><td>  <span class="c1">//If not inserted yet, add new item at the end of the track list.</span></td></tr><tr><th id="L206"><a href="#L206">206</a></th><td><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nx">inserted_flag</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L207"><a href="#L207">207</a></th><td>    <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="nx">new_item</span><span class="p">);</span></td></tr><tr><th id="L208"><a href="#L208">208</a></th><td>  <span class="p">}</span></td></tr><tr><th id="L209"><a href="#L209">209</a></th><td><span class="p">}</span></td></tr><tr><th id="L210"><a href="#L210">210</a></th><td></td></tr><tr><th id="L211"><a href="#L211">211</a></th><td><span class="cm">/**</span></td></tr><tr><th id="L212"><a href="#L212">212</a></th><td><span class="cm"> * Show the 'nothing selected' message if it applies.</span></td></tr><tr><th id="L213"><a href="#L213">213</a></th><td><span class="cm"> *</span></td></tr><tr><th id="L214"><a href="#L214">214</a></th><td><span class="cm"> * @param track_list_container Where the message is to be shown.</span></td></tr><tr><th id="L215"><a href="#L215">215</a></th><td><span class="cm"> */</span></td></tr><tr><th id="L216"><a href="#L216">216</a></th><td><span class="kd">function</span> <span class="nx">showNothingSelectedMessage</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L217"><a href="#L217">217</a></th><td>  <span class="c1">//Is the message there already?</span></td></tr><tr><th id="L218"><a href="#L218">218</a></th><td><span class="c1"></span>  <span class="kd">var</span> <span class="nx">message_showing</span> <span class="o">=</span></td></tr><tr><th id="L219"><a href="#L219">219</a></th><td>      <span class="p">(</span><span class="nx">track_list_container</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'.entity_ref_tree_nothing_message'</span><span class="p">).</span><span class="nx">size</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span></td></tr><tr><th id="L220"><a href="#L220">220</a></th><td></td></tr><tr><th id="L221"><a href="#L221">221</a></th><td>  <span class="c1">//Number of real items showing.</span></td></tr><tr><th id="L222"><a href="#L222">222</a></th><td><span class="c1"></span>  <span class="kd">var</span> <span class="nx">num_real_items_showing</span> <span class="o">=</span></td></tr><tr><th id="L223"><a href="#L223">223</a></th><td>      <span class="nx">message_showing</span></td></tr><tr><th id="L224"><a href="#L224">224</a></th><td>      <span class="o">?</span> <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'li'</span><span class="p">).</span><span class="nx">size</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span></td></tr><tr><th id="L225"><a href="#L225">225</a></th><td>      <span class="o">:</span> <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'li'</span><span class="p">).</span><span class="nx">size</span><span class="p">();</span></td></tr><tr><th id="L226"><a href="#L226">226</a></th><td>  <span class="k">if</span> <span class="p">(</span> <span class="nx">num_real_items_showing</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L227"><a href="#L227">227</a></th><td>    <span class="c1">//No items showing, so show the message.</span></td></tr><tr><th id="L228"><a href="#L228">228</a></th><td><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nx">message_showing</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L229"><a href="#L229">229</a></th><td>      <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span></td></tr><tr><th id="L230"><a href="#L230">230</a></th><td>          <span class="s1">'&lt;li class="entity_ref_tree_nothing_message"&gt;'</span> <span class="o">+</span> <span class="nx">entityReferenceTreeNothingSelectedText</span> <span class="o">+</span> <span class="s1">'&lt;/li&gt;'</span></td></tr><tr><th id="L231"><a href="#L231">231</a></th><td>      <span class="p">);</span></td></tr><tr><th id="L232"><a href="#L232">232</a></th><td>    <span class="p">}</span></td></tr><tr><th id="L233"><a href="#L233">233</a></th><td>  <span class="p">}</span></td></tr><tr><th id="L234"><a href="#L234">234</a></th><td>  <span class="k">else</span> <span class="p">{</span> <span class="c1">// !(num_real_items_showing == 0)</span></td></tr><tr><th id="L235"><a href="#L235">235</a></th><td><span class="c1"></span>    <span class="c1">//There are real items.</span></td></tr><tr><th id="L236"><a href="#L236">236</a></th><td><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span> <span class="nx">message_showing</span> <span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L237"><a href="#L237">237</a></th><td>      <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'.entity_ref_tree_nothing_message'</span><span class="p">).</span><span class="nx">remove</span><span class="p">();</span></td></tr><tr><th id="L238"><a href="#L238">238</a></th><td>    <span class="p">}</span></td></tr><tr><th id="L239"><a href="#L239">239</a></th><td>  <span class="p">}</span></td></tr><tr><th id="L240"><a href="#L240">240</a></th><td><span class="p">}</span></td></tr><tr><th id="L241"><a href="#L241">241</a></th><td></td></tr><tr><th id="L242"><a href="#L242">242</a></th><td><span class="cm">/**</span></td></tr><tr><th id="L243"><a href="#L243">243</a></th><td><span class="cm"> * Remove the 'nothing selected' message. Makes processing easier.</span></td></tr><tr><th id="L244"><a href="#L244">244</a></th><td><span class="cm"> *</span></td></tr><tr><th id="L245"><a href="#L245">245</a></th><td><span class="cm"> * @param track_list_container Where the message is shown.</span></td></tr><tr><th id="L246"><a href="#L246">246</a></th><td><span class="cm"> */</span></td></tr><tr><th id="L247"><a href="#L247">247</a></th><td><span class="kd">function</span> <span class="nx">removeNothingSelectedMessage</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L248"><a href="#L248">248</a></th><td>  <span class="nx">track_list_container</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'.entity_ref_tree_nothing_message'</span><span class="p">).</span><span class="nx">remove</span><span class="p">();</span></td></tr><tr><th id="L249"><a href="#L249">249</a></th><td><span class="p">}</span></td></tr><tr><th id="L250"><a href="#L250">250</a></th><td></td></tr><tr><th id="L251"><a href="#L251">251</a></th><td><span class="c1">// This helper function checks if the maximum number of choices is already selected.</span></td></tr><tr><th id="L252"><a href="#L252">252</a></th><td><span class="c1">// If so, it disables all the other options.  If not, it enables them.</span></td></tr><tr><th id="L253"><a href="#L253">253</a></th><td><span class="c1"></span><span class="kd">function</span> <span class="nx">checkMaxChoices</span><span class="p">(</span><span class="nx">item</span><span class="p">,</span> <span class="nx">checkbox</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L254"><a href="#L254">254</a></th><td>  <span class="kd">var</span> <span class="nx">maxChoices</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span></td></tr><tr><th id="L255"><a href="#L255">255</a></th><td>  <span class="k">try</span> <span class="p">{</span></td></tr><tr><th id="L256"><a href="#L256">256</a></th><td>    <span class="nx">maxChoices</span> <span class="o">=</span> <span class="nb">parseInt</span><span class="p">(</span><span class="nx">Drupal</span><span class="p">.</span><span class="nx">settings</span><span class="p">.</span><span class="nx">entity_reference_tree</span><span class="p">.</span><span class="nx">trees</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'id'</span><span class="p">)][</span><span class="s1">'max_choices'</span><span class="p">]);</span></td></tr><tr><th id="L257"><a href="#L257">257</a></th><td>  <span class="p">}</span></td></tr><tr><th id="L258"><a href="#L258">258</a></th><td>  <span class="k">catch</span> <span class="p">(</span><span class="nx">e</span><span class="p">){}</span></td></tr><tr><th id="L259"><a href="#L259">259</a></th><td>  <span class="kd">var</span> <span class="nx">count</span> <span class="o">=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">':checked'</span><span class="p">).</span><span class="nx">length</span><span class="p">;</span></td></tr><tr><th id="L260"><a href="#L260">260</a></th><td></td></tr><tr><th id="L261"><a href="#L261">261</a></th><td>  <span class="k">if</span><span class="p">(</span><span class="nx">maxChoices</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="nx">count</span> <span class="o">&gt;=</span> <span class="nx">maxChoices</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L262"><a href="#L262">262</a></th><td>    <span class="nx">item</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'input[type=checkbox]:not(:checked)'</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'disabled'</span><span class="p">,</span> <span class="s1">'disabled'</span><span class="p">).</span><span class="nx">parent</span><span class="p">().</span><span class="nx">addClass</span><span class="p">(</span><span class="s1">'disabled'</span><span class="p">);</span></td></tr><tr><th id="L263"><a href="#L263">263</a></th><td>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span></td></tr><tr><th id="L264"><a href="#L264">264</a></th><td>    <span class="nx">item</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'input[type=checkbox]'</span><span class="p">).</span><span class="nx">removeAttr</span><span class="p">(</span><span class="s1">'disabled'</span><span class="p">).</span><span class="nx">parent</span><span class="p">().</span><span class="nx">removeClass</span><span class="p">(</span><span class="s1">'disabled'</span><span class="p">);</span></td></tr><tr><th id="L265"><a href="#L265">265</a></th><td>  <span class="p">}</span></td></tr><tr><th id="L266"><a href="#L266">266</a></th><td></td></tr><tr><th id="L267"><a href="#L267">267</a></th><td>  <span class="k">if</span><span class="p">(</span><span class="nx">checkbox</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L268"><a href="#L268">268</a></th><td>    <span class="k">if</span><span class="p">(</span><span class="nx">item</span><span class="p">.</span><span class="nx">hasClass</span><span class="p">(</span><span class="s1">'select-parents'</span><span class="p">))</span> <span class="p">{</span></td></tr><tr><th id="L269"><a href="#L269">269</a></th><td>      <span class="kd">var</span> <span class="nx">track_list_container</span> <span class="o">=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'.entity-reference-tree-track-list'</span><span class="p">);</span></td></tr><tr><th id="L270"><a href="#L270">270</a></th><td>      <span class="kd">var</span> <span class="nx">input_type</span> <span class="o">=</span></td></tr><tr><th id="L271"><a href="#L271">271</a></th><td>          <span class="p">(</span> <span class="nx">item</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">'input[type=checkbox]'</span><span class="p">).</span><span class="nx">size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="o">?</span> <span class="s1">'checkbox'</span> <span class="o">:</span> <span class="s1">'radio'</span><span class="p">;</span></td></tr><tr><th id="L272"><a href="#L272">272</a></th><td></td></tr><tr><th id="L273"><a href="#L273">273</a></th><td>      <span class="k">if</span><span class="p">(</span><span class="nx">checkbox</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'checked'</span><span class="p">))</span> <span class="p">{</span></td></tr><tr><th id="L274"><a href="#L274">274</a></th><td>        <span class="nx">checkbox</span><span class="p">.</span><span class="nx">parents</span><span class="p">(</span><span class="s1">'ul.entity-reference-tree-level li'</span><span class="p">).</span><span class="nx">children</span><span class="p">(</span><span class="s1">'div.form-item'</span><span class="p">).</span><span class="nx">children</span><span class="p">(</span><span class="s1">'input[type=checkbox]'</span><span class="p">).</span><span class="nx">each</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span></td></tr><tr><th id="L275"><a href="#L275">275</a></th><td>          <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'checked'</span><span class="p">,</span> <span class="nx">checkbox</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'checked'</span><span class="p">));</span></td></tr><tr><th id="L276"><a href="#L276">276</a></th><td></td></tr><tr><th id="L277"><a href="#L277">277</a></th><td>          <span class="k">if</span><span class="p">(</span><span class="nx">track_list_container</span><span class="p">)</span> <span class="p">{</span></td></tr><tr><th id="L278"><a href="#L278">278</a></th><td>            <span class="nx">label_element</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">next</span><span class="p">();</span></td></tr><tr><th id="L279"><a href="#L279">279</a></th><td>            <span class="nx">addItemToTrackList</span><span class="p">(</span></td></tr><tr><th id="L280"><a href="#L280">280</a></th><td>              <span class="nx">track_list_container</span><span class="p">,</span>         <span class="c1">//Where to add new item.</span></td></tr><tr><th id="L281"><a href="#L281">281</a></th><td><span class="c1"></span>              <span class="nx">label_element</span><span class="p">.</span><span class="nx">html</span><span class="p">(),</span>         <span class="c1">//Text of new item.</span></td></tr><tr><th id="L282"><a href="#L282">282</a></th><td><span class="c1"></span>              <span class="nx">$</span><span class="p">(</span><span class="nx">label_element</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">'for'</span><span class="p">),</span> <span class="c1">//Id of control new item is for.</span></td></tr><tr><th id="L283"><a href="#L283">283</a></th><td><span class="c1"></span>              <span class="nx">input_type</span>                    <span class="c1">//checkbox or radio</span></td></tr><tr><th id="L284"><a href="#L284">284</a></th><td><span class="c1"></span>            <span class="p">);</span></td></tr><tr><th id="L285"><a href="#L285">285</a></th><td>          <span class="p">}</span></td></tr><tr><th id="L286"><a href="#L286">286</a></th><td>        <span class="p">});</span></td></tr><tr><th id="L287"><a href="#L287">287</a></th><td>      <span class="p">}</span></td></tr><tr><th id="L288"><a href="#L288">288</a></th><td>    <span class="p">}</span></td></tr><tr><th id="L289"><a href="#L289">289</a></th><td>  <span class="p">}</span></td></tr><tr><th id="L290"><a href="#L290">290</a></th><td><span class="p">}</span></td></tr><tr><th id="L291"><a href="#L291">291</a></th><td></td></tr><tr><th id="L292"><a href="#L292">292</a></th><td><span class="p">})(</span><span class="nx">jQuery</span><span class="p">);</span></td></tr></tbody></table>
 
-      </div>
-      <div id="help"><strong>Note :</strong> consultez <a href="/hug/intranet-tma/trac/wiki/TracBrowser">TracBrowser</a> pour obtenir de l'aide sur l'utilisation de l'explorateur de sources.</div>
-      <div id="anydiff">
-        <form action="/hug/intranet-tma/trac/diff" method="get">
-          <div class="buttons">
-            <input type="hidden" name="new_path" value="/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js" />
-            <input type="hidden" name="old_path" value="/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js" />
-            <input type="hidden" name="new_rev" />
-            <input type="hidden" name="old_rev" />
-            <input type="submit" value="Voir les différences ..." title="Sélection des chemins et des révisions pour les différences" />
-          </div>
-        </form>
-      </div>
-    </div>
-    <div id="altlinks">
-      <h3>Télécharger en d'autres formats :</h3>
-      <ul>
-        <li class="first">
-          <a rel="nofollow" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js?format=txt">Texte brut</a>
-        </li><li class="last">
-          <a rel="nofollow" href="/hug/intranet-tma/trac/export/2519/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js">Format original</a>
-        </li>
-      </ul>
-    </div>
-    </div>
-    <div id="footer" lang="en" xml:lang="en"><hr />
-      <a id="tracpowered" href="http://trac.edgewall.org/"><img src="/hug/intranet-tma/trac/chrome/common/trac_logo_mini.png" height="30" width="107" alt="Trac Powered" /></a>
-      <p class="left">Animé par <a href="/hug/intranet-tma/trac/about"><strong>Trac 0.12.3</strong></a><br />
-        produit par <a href="http://www.edgewall.org/">Edgewall Software</a>.</p>
-      <p class="right">En savoir plus sur le projet Trac :<br /> <a href="http://trac.edgewall.org/">http://trac.edgewall.org/</a></p>
-    </div>
-  </body>
-</html>
+      //On page load, check if the user wants a track list. If so, add the
+      //currently selected items to it.
+      if($(this).hasClass('entity-reference-tree-track-list-shown')) {
+        var track_list_container = $(this).find('.entity-reference-tree-track-list');
+
+        //Var to track whether using checkboxes or radio buttons.
+        var input_type =
+          ( $(this).has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
+
+        //Find all the checked controls.
+        var checked_controls = $(this).find('input[type=' + input_type + ']:checked');
+
+        //Get their labels.
+        var labels = checked_controls.next();
+        var label_element;
+
+        //For each label of the checked boxes, add item to the track list.
+        labels.each(function(index) {
+          label_element = $(labels[index]);
+          addItemToTrackList(
+            track_list_container,         //Where to add new item.
+            label_element.html(),         //Text of new item.
+            $(label_element).attr('for'), //Id of control new item is for.
+            input_type                    //checkbox or radio
+          );
+        }); //End labels.each
+
+        //Show "nothing selected" message, if needed.
+        showNothingSelectedMessage(track_list_container);
+
+        //Event - when an element on the track list is clicked on:
+        //  1. Delete it.
+        //  2. Uncheck the associated checkbox.
+        //The event is bound to the track list container, not each element.
+        $(track_list_container).click(function(event){
+          //Remove the "nothing selected" message if showing - add it later if needed.
+          //removeNothingSelectedMessage(track_list_container);
+          var event_target = $(event.target);
+          var control_id = event_target.data('control_id');
+
+          if(control_id) {
+            event_target.remove();
+
+            var checkbox = $('#' + control_id);
+            checkbox.removeAttr('checked');
+            checkMaxChoices(tree, checkbox);
+
+            //Show "nothing selected" message, if needed.
+            showNothingSelectedMessage(track_list_container);
+          }
+        });
+
+        //Change track list when controls are clicked.
+        $(this).find('.form-' + input_type).change(function(event){
+          //Remove the "nothing selected" message if showing - add it later if needed.
+          removeNothingSelectedMessage(track_list_container);
+          var event_target = $(event.target);
+          var control_id = event_target.attr('id');
+          if ( event_target.attr('checked') ) {
+            //Control checked - add item to the track list.
+            label_element = event_target.next();
+            addItemToTrackList(
+              track_list_container,         //Where to add new item.
+              label_element.html(),         //Text of new item.
+              $(label_element).attr('for'), //Id of control new item is for.
+              input_type                    //checkbox or radio
+            );
+          }
+          else {
+            //Checkbox unchecked. Remove from the track list.
+            $('#' + control_id + '_list').remove();
+          }
+
+          //Show "nothing selected" message, if needed.
+          showNothingSelectedMessage(track_list_container);
+        }); //End process checkbox changes.
+      } //End Want a track list.
+
+      //On page load, check if the user wants a cascading selection.
+      if($(this).hasClass('entity-reference-tree-cascading-selection')) {
+
+        //Check children when checkboxes are clicked.
+        $(this).find('.form-checkbox').change(function(event) {
+          var event_target = $(event.target);
+          var control_id = event_target.attr('id');
+          var children = event_target.parent().next().children().children('div.form-type-checkbox').children('input[id^="' + control_id + '-children"]');
+          if(event_target.attr('checked')) {
+            //Checkbox checked - check children if none were checked.
+            if(!$(children).filter(':checked').length) {
+              $(children).click().trigger('change');
+            }
+          }
+          else {
+            //Checkbox unchecked. Uncheck children if all were checked.
+            if(!$(children).not(':checked').length) {
+              $(children).click().trigger('change');
+            }
+          }
+
+        });
+        //End process checkbox changes.
+      } //End Want a cascading checking.
+
+    });
+  }
+};
+
+/**
+ * Add a new item to the track list.
+ * If more than one item can be selected, the new item is positioned to
+ * match the order of the entitys in the checkbox tree.
+ *
+ * @param track_list_container Container where the new item will be added.
+ *
+ * @param item_text Text of the item to add.
+ *
+ * @param control_id Id of the checkbox/radio control the item matches.
+ *
+ * @param control_type Control type - 'checkbox' or 'radio'.
+ */
+function addItemToTrackList(track_list_container, item_text, control_id, control_type) {
+  var new_item = $('<li class="track-item">' + item_text + '</li>');
+  new_item.data('control_id', control_id);
+
+  //Add an id for easy finding of the item.
+  new_item.attr('id', control_id + '_list');
+
+  //Process radio controls - only one item can be selected.
+  if ( control_type == 'radio') {
+    //Find the existing element on the track list, if there is one.
+    var current_items = track_list_container.find('li');
+
+    //If there are no items on the track list, add the new item.
+    if ( current_items.size() == 0 ) {
+      track_list_container.append(new_item);
+    }
+    else {
+      //There is an item on the list.
+      var current_item = $(current_items.get(0));
+
+      //Is the item we want to add different from what is there?
+      if ( current_item.data('control_id') != control_id ) {
+        //Remove exiting element from track list, and add the new one.
+        current_item.remove();
+        track_list_container.append(new_item);
+      }
+    }
+    return;
+  }
+
+  //Using checkboxes, so there can be more than one selected item.
+  //Find the right place to put the new item, to match the order of the
+  //checkboxes.
+  var list_items = track_list_container.find('li');
+  var item_comparing_to;
+
+  //Flag to tell whether the item was inserted.
+  var inserted_flag = false;
+  list_items.each(function(index){
+    item_comparing_to = $(list_items[index]);
+
+    //If item is already on the track list, do nothing.
+    if ( control_id == item_comparing_to.data('control_id') ) {
+      inserted_flag = true;
+      return false; //Returning false stops the loop.
+    }
+    else if ( control_id < item_comparing_to.data('control_id') ) {
+      //Add it here.
+      item_comparing_to.before(new_item);
+      inserted_flag = true;
+      return false; //Returning false stops the loop.
+    }
+  });
+
+  //If not inserted yet, add new item at the end of the track list.
+  if ( ! inserted_flag ) {
+    track_list_container.append(new_item);
+  }
+}
+
+/**
+ * Show the 'nothing selected' message if it applies.
+ *
+ * @param track_list_container Where the message is to be shown.
+ */
+function showNothingSelectedMessage(track_list_container) {
+  //Is the message there already?
+  var message_showing =
+      (track_list_container.find('.entity_ref_tree_nothing_message').size() != 0);
+
+  //Number of real items showing.
+  var num_real_items_showing =
+      message_showing
+      ? track_list_container.find('li').size() - 1
+      : track_list_container.find('li').size();
+  if ( num_real_items_showing == 0 ) {
+    //No items showing, so show the message.
+    if ( ! message_showing ) {
+      track_list_container.append(
+          '<li class="entity_ref_tree_nothing_message">' + entityReferenceTreeNothingSelectedText + '</li>'
+      );
+    }
+  }
+  else { // !(num_real_items_showing == 0)
+    //There are real items.
+    if ( message_showing ) {
+      track_list_container.find('.entity_ref_tree_nothing_message').remove();
+    }
+  }
+}
+
+/**
+ * Remove the 'nothing selected' message. Makes processing easier.
+ *
+ * @param track_list_container Where the message is shown.
+ */
+function removeNothingSelectedMessage(track_list_container) {
+  track_list_container.find('.entity_ref_tree_nothing_message').remove();
+}
+
+// This helper function checks if the maximum number of choices is already selected.
+// If so, it disables all the other options.  If not, it enables them.
+function checkMaxChoices(item, checkbox) {
+  var maxChoices = -1;
+  try {
+    maxChoices = parseInt(Drupal.settings.entity_reference_tree.trees[item.attr('id')]['max_choices']);
+  }
+  catch (e){}
+  var count = item.find(':checked').length;
+
+  if(maxChoices > 0 && count >= maxChoices) {
+    item.find('input[type=checkbox]:not(:checked)').attr('disabled', 'disabled').parent().addClass('disabled');
+  } else {
+    item.find('input[type=checkbox]').removeAttr('disabled').parent().removeClass('disabled');
+  }
+
+  if(checkbox) {
+    if(item.hasClass('select-parents')) {
+      var track_list_container = item.find('.entity-reference-tree-track-list');
+      var input_type =
+          ( item.has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
+
+      if(checkbox.attr('checked')) {
+        checkbox.parents('ul.entity-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').each(function() {
+          $(this).attr('checked', checkbox.attr('checked'));
+
+          if(track_list_container) {
+            label_element = $(this).next();
+            addItemToTrackList(
+              track_list_container,         //Where to add new item.
+              label_element.html(),         //Text of new item.
+              $(label_element).attr('for'), //Id of control new item is for.
+              input_type                    //checkbox or radio
+            );
+          }
+        });
+      }
+    }
+  }
+}
+
+})(jQuery);
