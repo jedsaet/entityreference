@@ -1,578 +1,159 @@
-<?php
-
-/**
- * @file
- * Configure widget management for a entity reference tree.
- */
-
-/**
- * Themes the OG group tree display (as opposed to the select widget).
- */
-function theme_entity_reference_tree_list($variables) {
-  $element =& $variables['element'];
-  $data =& $element['//data'];
-  $tree = array();
-
-  // For each selected group:
-  foreach ($data as $item) {
-    // Loop if the group ID is not zero.
-    $values = array();
-    $id = $item[$element['//display']['settings']['target_id']];
-    $original_id = $id;
-    while ($id != 0) {
-      // Unshift the term onto an array.
-      array_unshift($values, $id);
-
-      // Repeat with parent group.
-      $id = current(module_invoke_all('get_entity_parent', $element, $id));
-    }
-    $current =& $tree;
-    // For each group in the above array.
-    foreach ($values as $id) {
-      // current[children][group_id] = new array.
-      if (!isset($current['children'][$id])) {
-        $current['children'][$id] = array('selected' => FALSE);
-      }
-
-      // If this is the last value in the array, value of tree children is true.
-      if ($id == $original_id) {
-        $current['children'][$id]['selected'] = TRUE;
-      }
-
-      $current['children'][$id]['id'] = $id;
-      $current =& $current['children'][$id];
-    }
-  }
-
-  $output = "<div class='entity-tree-list'>";
-  $output .= _entity_reference_tree_output_list_level($element, $tree);
-  $output .= "</div>";
-  return $output;
-}
-
-/**
- * Helper function to output a single level of the term reference tree.
- */
-function _entity_reference_tree_output_list_level(&$element, &$tree) {
-  if (isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
-    $output = '<ul class="entity">';
-    $settings = $element['//display']['settings'];
-    $tokens_selected = $settings['token_display_selected'];
-    $tokens_unselected = ($settings['token_display_unselected'] != '') ? $settings['token_display_unselected'] : $tokens_selected;
-
-    $entity_info = entity_get_info($settings['target_entity']);
-    foreach ($tree['children'] as &$item) {
-      $entity = $entity_info['load hook']($item['id']);
-      $uri = $entity_info['uri callback']($entity);
-      $uri['options']['html'] = TRUE;
-      $class = $item['selected'] ? 'selected' : 'unselected';
-      $output .= "<li class='$class'>";
-      if ($tokens_selected != '' && module_exists('token')) {
-        $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;
-        $output .= token_replace($replace, array('entity' => $entity), array('clear' => TRUE));
-      }
-      else {
-        $output .= l(entity_label($settings['target_entity'], $entity), $uri['path'], $uri['options']);
-      }
-      if (isset($item['children'])) {
-        $output .= _entity_reference_tree_output_list_level($element, $item);
-      }
-      $output .= "</li>";
-    }
-
-    $output .= '</ul>';
-    return $output;
-  }
-}
-
-/**
- * Makes sure that cardinality is unlimited if auto-select parents is enabled.
- */
-function _entity_reference_tree_select_parents_validate($element, &$form_state) {
-  if ($form_state['values']['instance']['widget']['settings']['select_parents'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
-    // This is pretty wonky syntax for the field name in
-    // form_set_error, but it's correct.
-    form_set_error('field][cardinality', t('You must select an Unlimited number of values if Select Parents Automatically is enabled.'));
-  }
-}
-
-/**
- * Makes sure that cardinality is unlimited if cascading selection is enabled.
- */
-function _entity_reference_tree_cascading_selection_validate($element, &$form_state) {
-  if ($form_state['values']['instance']['widget']['settings']['cascading_selection'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
-    // This is pretty wonky syntax for the field name in
-    // form_set_error, but it's correct.
-    form_set_error('field][cardinality', t('You must select an Unlimited number of values if Cascading selection is enabled.'));
-  }
-}
-
-/**
- * Process the checkbox_tree widget.
- *
- * This function processes the checkbox_tree widget.
- *
- * @param array $element
- *   The element to be drawn.$element['//field_name']
- * @param array $form_state
- *   The form state.
- *
- * @return object
- *   The processed element.
- */
-function entity_reference_tree_process_checkbox_tree($element, $form_state) {
-  if (is_array($form_state)) {
-    if (!empty($element['//max_choices']) && $element['//max_choices'] != '-1') {
-      drupal_add_js(array('entity_reference_tree' => array('trees' => array($element['//id'] => array('max_choices' => $element['//max_choices'])))), 'setting');
-    }
-    $allowed = '';
-
-    if ($element['//filter_view'] != '') {
-      $allowed = _entity_reference_tree_get_allowed_values($element);
-    }
-
-    $entity_info = entity_get_info($element['//target_entity']);
-    $value = !empty($element['//default_value']) ? $element['//default_value'] : array();
-
-    if (empty($element['//options'])) {
-      $element['//options_tree'] = module_invoke_all('get_entity_hierarchy', $element, $allowed, $value);
-
-      $required = $element['//required'];
-      if ($element['//max_choices'] == 1 && !$required) {
-        array_unshift($element['//options_tree'], (object) array(
-          $entity_info['entity keys']['id'] => '',
-          $entity_info['entity keys']['label'] => 'N/A',
-          'depth' => 0,
-        ));
-      }
-      $element['//options'] = _entity_reference_tree_get_options($element['//options_tree'], $allowed, $element['//filter_view'], $entity_info['entity keys']['id'], $entity_info['entity keys']['label']);
-    }
-
-    $entities = !empty($element['//options_tree']) ? $element['//options_tree'] : array();
-    $max_choices = !empty($element['//max_choices']) ? $element['//max_choices'] : 1;
-    if (array_key_exists('//select_parents', $element) && $element['//select_parents']) {
-      $element['//attributes']['class'][] = 'select-parents';
-    }
-
-    if ($max_choices != 1) {
-      $element['//tree'] = TRUE;
-    }
-
-    $tree = new stdClass();
-    $tree->children = $entities;
-    $element[] = _entity_reference_tree_build_level($element, $tree, $form_state, $value, $max_choices, array(), 1);
-
-    // Add a track list element?
-    $track_list = !empty($element['//track_list']) && $element['//track_list'];
-    if ($track_list) {
-      $element[] = array(
-        '//type' => 'checkbox_tree_track_list',
-        '//max_choices' => $max_choices,
-      );
-    }
-  }
-
-  return $element;
-}
-
-/**
- * Returns HTML for a checkbox_tree form element.
- *
- * @param array $variables
- *   An associative array containing:
- *   - element: An associative array containing the properties of the element.
- *
- * @ingroup themeable
- */
-function theme_checkbox_tree($variables) {
-  $element = $variables['element'];
-  $element['//children'] = drupal_render_children($element);
-
-  $attributes = array();
-  if (isset($element['//id'])) {
-    $attributes['id'] = $element['//id'];
-  }
-  $attributes['class'][] = 'entity-reference-tree';
-
-  if (form_get_error($element)) {
-    $attributes['class'][] = 'error';
-  }
-
-  if (!empty($element['//required'])) {
-    $attributes['class'][] = 'required';
-  }
-
-  if (array_key_exists('//start_minimized', $element) && $element['//start_minimized']) {
-    $attributes['class'][] = "entity-reference-tree-start-minimized";
-  }
-
-  if (array_key_exists('//cascading_selection', $element) && $element['//cascading_selection']) {
-    $attributes['class'][] = "entity-reference-tree-cascading-selection";
-  }
-
-  if (array_key_exists('//track_list', $element) && $element['//track_list']) {
-    $attributes['class'][] = "entity-reference-tree-track-list-shown";
-  }
-
-  if (!empty($element['//attributes']['class'])) {
-    $attributes['class'] = array_merge($attributes['class'], $element['//attributes']['class']);
-  }
-  return
-      '<div' . drupal_attributes($attributes) . '>'
-    . (!empty($element['//children']) ? $element['//children'] : '')
-    . '</div>';
-}
-
-/**
- * This function prints a list item with a checkbox and
- * an unordered list of all the elements inside it.
- */
-function theme_checkbox_tree_level($variables) {
-  $element = $variables['element'];
-  $sm = '';
-  if (array_key_exists('//level_start_minimized', $element) && $element['//level_start_minimized']) {
-    $sm = " style='display: none;'";
-  }
-
-  $output = "<ul class='entity-reference-tree-level '$sm>";
-  $children = element_children($element);
-  foreach ($children as $child) {
-    $output .= "<li>";
-    $output .= drupal_render($element[$child]);
-    $output .= "</li>";
-  }
-
-  $output .= "</ul>";
-
-  return $output;
-}
-
-/**
- * This function prints a single item in the tree, followed by that item's children
- * (which may be another checkbox_tree_level).
- */
-function theme_checkbox_tree_item($variables) {
-  $element = $variables['element'];
-  $children = element_children($element);
-  $output = "";
-
-  $sm = $element['//level_start_minimized'] ? ' entity-reference-tree-collapsed' : '';
-
-  if (is_array($children) && count($children) > 1) {
-    $output .= "<div class='entity-reference-tree-button$sm'></div>";
-  }
-  elseif (!$element['//leaves_only']) {
-    $output .= "<div class='no-entity-reference-tree-button'></div>";
-  }
-
-  foreach ($children as $child) {
-    $output .= drupal_render($element[$child]);
-  }
-
-  return $output;
-}
-
-/**
- * This function prints a label that cannot be selected.
- */
-function theme_checkbox_tree_label($variables) {
-  $element = $variables['element'];
-  $output = "<div class='parent-entity'>" . $element['//value'] . "</div>";
-  return $output;
-}
-
-/**
- * Shows a list of items that have been checked.
- * The display happens on the client-side.
- *
- * @param array $variables
- *   Variables available for theming.
- */
-function theme_checkbox_tree_track_list($variables) {
-  // Should the label be singular/plural?Depends on cardinality of entity field.
-  static $nothingselected;
-
-  if (!$nothingselected) {
-    $nothingselected = t('[Nothing selected]');
-    // Add the "Nothing selected" text.Style it, replace with whatever you want.
-    // Could do this with a file instead.
-    drupal_add_js(
-      'var entityReferenceTreeNothingSelectedText = "' . $nothingselected . '";',
-      'inline'
-    );
-  }
-
-  $label = format_plural(
-      $variables['element']['//max_choices'],
-      'Selected item (click the item to uncheck it)',
-      'Selected items (click an item to uncheck it)'
-  );
-  $output = '<div class="entity-reference-track-list-container">';
-  $output .= '<div class="entity-reference-track-list-label">' . $label . '</div>';
-  $output .= '<ul class="entity-reference-tree-track-list"><li class="entity_ref_tree_nothing_message">' . $nothingselected . '</li></ul>';
-  $output .= '</div>';
-
-  return $output;
-}
-
-/**
- * Validates the entity reference tree widgets.
- *
- * This function sets the value of the tree widgets into a form that Drupal
- * can understand, and also checks if the field is required and has been
- * left empty.
- *
- * @param array $element
- *   The element to be validated.
- * @param array $form_state
- *   The state of the form.
- *
- * @return array
- *   The validated element.
- */
-function _entity_reference_tree_widget_validate(&$element, &$form_state) {
-  $items = _entity_reference_tree_flatten($element, $form_state);
-  $value = array();
-
-  if ($element['//max_choices'] != 1) {
-    foreach ($items as $child) {
-      if (!empty($child['//value'])) {
-        array_push($value, array($element['//value_key'] => $child['//value']));
-
-        // If the element is leaves only and select parents is on, then automatically
-        // add all the parents of each selected value.
-        if ($element['//select_parents'] && $element['//leaves_only']) {
-          foreach ($child['//parent_values'] as $parent_id) {
-            if (!in_array(array($element['//value_key'] => $parent_id), $value)) {
-              array_push($value, array($element['//value_key'] => $parent_id));
-            }
-          }
-        }
-      }
-    }
-  }
-  else {
-    // If it's a tree of radio buttons, they all have the same value, so we can just
-    // grab the value of the first one.
-    if (count($items) > 0) {
-      $child = reset($items);
-      if (!empty($child['//value'])) {
-        array_push($value, array($element['//value_key'] => $child['//value']));
-      }
-    }
-  }
-
-  if ($element['//required'] && empty($value)) {
-    // The title is already check_plained so it's appropriate to use !.
-    form_error($element, t('!name field is required.', array('!name' => $element['//title'])));
-  }
-
-  form_set_value($element, $value, $form_state);
-  return $element;
-}
-
-/**
- * Returns an array of allowed values defined by the given view.
- *
- * @param array $element
- *   The element to be validated.
- *
- * @return array
- *   An array of entity IDs ({id} => true) returned by the view.
- */
-function _entity_reference_tree_get_allowed_values($element) {
-  $filter = $element['//filter_view'];
-  $arg_type = $element['//filter_view_arg_type'];
-  $arg_value = $element['//filter_view_arg_key'];
-  $entity_info = entity_get_info($element['//target_entity']);
-  $id = $entity_info['entity keys']['id'];
-  $viewname = "";
-  $displayname = "";
-  $args = "";
-  $allowed = array();
-  $viewname = "";
-  $displayname = "";
-
-  // Get the arguments for the view.
-  if ($arg_type == 1 && is_numeric($arg_value)) $args = arg($arg_value);
-  if ($arg_type == 2 && $arg_value != '' && isset($_REQUEST[$arg_value])) {
-    if (is_array($_REQUEST[$arg_value])) {
-      foreach ($_REQUEST[$arg_value] as $k => $arg) {
-        $args .= $arg;
-        if ($k < count($arg) - 1) $args .= ',';
-      }
-    }
-    else {
-      $args = $_REQUEST[$arg_value];
-    }
-  }
-
-  if (module_exists('views') && $filter != '') {
-    list($viewname, $displayname) = explode(":", $filter);
-    $view = views_get_view($viewname);
-    if (is_object($view)) {
-      if ($view->access($displayname)) {
-        // Save page title first, since execute_display() resets to the display title.
-        $title = drupal_get_title();
-        $view->execute_display($displayname);
-        $title = drupal_set_title($title, PASS_THROUGH);
-        foreach ($view->result as $item) {
-          $allowed[$item->{$id}] = TRUE;
-        }
-      }
-      else {
-        drupal_set_message("Cannot access view for entity reference tree widget.", 'warning');
-      }
-    }
-    else {
-      drupal_set_message("Entity reference tree: no view named '$viewname'", 'warning');
-    }
-  }
-
-  return $allowed;
-}
-
-/**
- * Builds a single item in the entity reference tree widget.
- *
- * This function returns an element with a checkbox for a single entity.
- * If that entity has children, it appends checkbox_tree_level element that
- * contains the children.  It is meant to be called recursively when the widget
- * is built.
- *
- * @param array $element
- *   The main checkbox_tree element.
- * @param object $entity
- *   An entity object.  $entity->children should be an array of the entity
- *   objects that are that entity's children.
- * @param array $form_state
- *   The form state.
- * @param string $value
- *   The value of the element.
- * @param array $max_choices
- *   The maximum number of allowed selections.
- *
- * @return array
- *   A completed checkbox_tree_item element, which contains a checkbox and
- *   possibly a checkbox_tree_level element as well.
- */
-function _entity_reference_tree_build_item(&$element, &$entity, $form_state, $value, $max_choices, $parent_ids, $parent, $depth) {
-  $entity_info = entity_get_info($element['//target_entity']);
-  $id = $entity_info['entity keys']['id'];
-
-  $leaves_only = FALSE;
-  if (array_key_exists('//leaves_only', $element)) {
-    $leaves_only = $element['//leaves_only'];
-  }
-
-  $entity_name = $entity->{$entity_info['entity keys']['label']};
-
-  $container = array(
-    '//type' => 'checkbox_tree_item',
-    '//max_choices' => $max_choices,
-    '//leaves_only' => $leaves_only,
-    '//entity_name' => $entity_name,
-    '//level_start_minimized' => FALSE,
-    '//depth' => $depth,
-  );
-
-  if (!$element['//leaves_only'] || count($entity->children) == 0) {
-    if (!$element['//allowed_ids'] || in_array($entity->{$id}, $element['//allowed_ids'])) {
-      $e = array(
-        '//type' => ($max_choices == 1) ? 'radio' : 'checkbox',
-        '//title' => $entity_name,
-        '//on_value' => $entity->{$id},
-        '//off_value' => 0,
-        '//return_value' => $entity->{$id},
-        '//parent_values' => $parent_ids,
-        '//default_value' => isset($value[$entity->{$id}]) ? $entity->{$id} : NULL,
-        '//attributes' => isset($element['//attributes']) ? $element['//attributes'] : NULL,
-        '//ajax' => isset($element['//ajax']) ? $element['//ajax'] : NULL,
-      );
-    }
-    else {
-      $e = array(
-        '//type' => 'markup',
-        '//suffix' => $entity_name,
-      );
-    }
-    if ($element['//token_display'] != '' && module_exists('token')) {
-      $ent = entity_load($entity->type, $entity->{$id});
-      $e['//title'] = token_replace($element['//token_display'], array('entity' => $ent), array('clear' => TRUE));
-    }
-
-    if ($e['//type'] == 'radio') {
-      $parents_for_id = array_merge($element['//parents'], array($entity->{$id}));
-      $e['//id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
-      $e['//parents'] = $element['//parents'];
-    }
-  }
-  else {
-    $e = array(
-      '//type' => 'checkbox_tree_label',
-      '//value' => $entity->name,
-    );
-  }
-
-  $container[$entity->{$id}] = $e;
-
-  if (($depth + 1 <= $element['//max_depth'] || !$element['//max_depth']) && property_exists($entity, 'children') && count($entity->children) > 0) {
-    $parents = $parent_ids;
-    $parents[] = $entity->{$id};
-    $container[$entity->{$id} . '-children'] = _entity_reference_tree_build_level($element, $entity, $form_state, $value, $max_choices, $parents, $depth + 1);
-    $container['//level_start_minimized'] = $container[$entity->{$id} . '-children']['//level_start_minimized'];
-  }
-
-  return $container;
-}
-
-/**
- * Builds a level in the entity reference tree widget.
- *
- * This function returns an element that has a number of 
- * checkbox_tree_item elements as children.  It is meant to be called 
- * recursively when the widget is built.
- *
- * @param array $element
- *   The main checkbox_tree element.
- * @param object $entity
- *   An entity object.  $entity->children should be an array of the entity
- *   objects that are that entity's children.
- * @param array $form_state
- *   The form state.
- * @param string $value
- *   The value of the element.
- * @param array $max_choices
- *   The maximum number of allowed selections.
- *
- * @return
- *   A completed checkbox_tree_level element.
- */
-function _entity_reference_tree_build_level($element, $entity, $form_state, $value, $max_choices, $parent_ids, $depth) {
-  $entity_info = entity_get_info($element['//target_entity']);
-  $start_minimized = FALSE;
-  if (array_key_exists('//start_minimized', $element)) {
-    $start_minimized = $element['//start_minimized'];
-  }
-
-  $leaves_only = FALSE;
-  if (array_key_exists('//leaves_only', $element)) {
-    $leaves_only = $element['//leaves_only'];
-  }
-
-  $container = array(
-    '//type' => 'checkbox_tree_level',
-    '//max_choices' => $max_choices,
-    '//leaves_only' => $leaves_only,
-    '//start_minimized' => $start_minimized,
-    '//depth' => $depth,
-  );
-
-  $container['//level_start_minimized'] = $depth > 1 && $element['//start_minimized'] && !($entity->children_selected);
-
-  foreach ($entity->children as $child) {
-    $container[$child->{$entity_info['entity keys']['id']}] = _entity_reference_tree_build_item($element, $child, $form_state, $value, $max_choices, $parent_ids, $container, $depth);
-  }
-
-  return $container;
-}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  
+  
+
+  
+
+
+  <head>
+    <title>
+      entity_reference_tree.widget.inc dans webfactory/trunk/sites/all/modules/custom/entity_reference_tree.
+     – hug - intranet-tma - Trac
+    </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <!--[if IE]><script type="text/javascript">window.location.hash = window.location.hash;</script><![endif]-->
+        <link rel="search" href="/hug/intranet-tma/trac/search" />
+        <link rel="help" href="/hug/intranet-tma/trac/wiki/TracGuide" />
+        <link rel="alternate" href="/hug/intranet-tma/trac/export/2519/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc" type="text/plain" title="Format original" />
+        <link rel="tracwysiwyg.base" href="/hug/intranet-tma/trac" />
+        <link rel="start" href="/hug/intranet-tma/trac/wiki" />
+        <link rel="stylesheet" href="/hug/intranet-tma/trac/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="/hug/intranet-tma/trac/chrome/common/css/code.css" type="text/css" /><link rel="stylesheet" href="/hug/intranet-tma/trac/pygments/trac.css" type="text/css" /><link rel="stylesheet" href="/hug/intranet-tma/trac/chrome/common/css/browser.css" type="text/css" /><link rel="stylesheet" href="/hug/intranet-tma/trac/chrome/tracwysiwyg/wysiwyg.css" type="text/css" />
+        <link rel="tracwysiwyg.stylesheet" href="/hug/intranet-tma/trac/chrome/common/css/trac.css" /><link rel="tracwysiwyg.stylesheet" href="/hug/intranet-tma/trac/chrome/tracwysiwyg/editor.css" />
+        <link rel="prev" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc?rev=2417" title="Révision 2417" />
+        <link rel="shortcut icon" href="/hug/intranet-tma/trac/chrome/common/trac.ico" type="image/x-icon" />
+        <link rel="icon" href="/hug/intranet-tma/trac/chrome/common/trac.ico" type="image/x-icon" />
+      <link type="application/opensearchdescription+xml" rel="search" href="/hug/intranet-tma/trac/search/opensearch" title="Rechercher dans hug - intranet-tma - Trac" />
+    <script type="text/javascript">
+      var _tracwysiwyg={"escapeNewlines":false};
+    </script>
+    <script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/jquery.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/babel.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/messages/fr.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/trac.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/search.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/tracwysiwyg/wysiwyg.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/tracwysiwyg/wysiwyg-load.js"></script><script type="text/javascript" src="/hug/intranet-tma/trac/chrome/tracsectionedit/js/tracsectionedit.js"></script>
+    <!--[if lt IE 7]>
+    <script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/ie_pre7_hacks.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="/hug/intranet-tma/trac/chrome/common/js/folding.js"></script>
+    <script type="text/javascript">
+      jQuery(document).ready(function($) {
+        $(".trac-toggledeleted").show().click(function() {
+                  $(this).siblings().find(".trac-deleted").toggle();
+                  return false;
+        }).click();
+        $("#jumploc input").hide();
+        $("#jumploc select").change(function () {
+          this.parentNode.parentNode.submit();
+        });
+          $('#preview table.code').enableCollapsibleColumns($('#preview table.code thead th.content'));
+      });
+    </script>
+    <link rel="stylesheet" type="text/css" href="/hug/intranet-tma/trac/chrome/site/css/trac.css" />
+      <link rel="stylesheet" type="text/css" href="/hug/intranet-tma/trac/chrome/site/css/browser.css" />
+   </head>
+  <body>
+    <div id="banner">
+      <div id="header">
+        <a id="logo" href="https://projects.clever-age.net/hug/intranet-tma/trac/wiki"><img src="http://www.hug-ge.ch/images/logo_hug.gif" alt="Clever Box HUG" /></a>
+      </div>
+      <form id="search" action="/hug/intranet-tma/trac/search" method="get">
+        <div>
+          <label for="proj-search">Recherche :</label>
+          <input type="text" id="proj-search" name="q" size="18" value="" />
+          <input type="submit" value="Recherche" />
+        </div>
+      </form>
+      <div id="metanav" class="nav">
+    <ul>
+      <li class="first">Connecté en tant qu'utilisateur fredrik.lahode</li><li><a href="/hug/intranet-tma/trac/logout">Déconnexion</a></li><li><a href="/hug/intranet-tma/trac/prefs">Préférences</a></li><li><a href="/hug/intranet-tma/trac/wiki/TracGuide">Aide / Guide</a></li><li><a href="/hug/intranet-tma/trac/about">À propos de Trac</a></li><li class="last"><a href="/hug/intranet-tma/trac/capassword">Password</a></li>
+    </ul>
+  </div>
+    </div>
+    <div id="mainnav" class="nav">
+    <ul>
+      <li class="first"><a href="/hug/intranet-tma/trac/wiki">Wiki</a></li><li><a href="/hug/intranet-tma/trac/timeline">Activité</a></li><li><a href="/hug/intranet-tma/trac/roadmap">Feuille de route</a></li><li class="active"><a href="/hug/intranet-tma/trac/browser">Explorateur de source</a></li><li><a href="/hug/intranet-tma/trac/report">Voir les tickets</a></li><li><a href="/hug/intranet-tma/trac/newticket">Nouveau ticket</a></li><li><a href="/hug/intranet-tma/trac/search">Recherche</a></li><li class="last"><a href="/hug/intranet-tma/trac/billing">Management</a></li>
+    </ul>
+  </div>
+    <div id="main">
+      <div id="ctxtnav" class="nav">
+        <h2>Navigation contextuelle</h2>
+          <ul>
+              <li class="first"><span>&larr; <a class="prev" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc?rev=2417" title="Révision 2417">Révision précédente</a></span></li><li><span class="missing">Révision suivante &rarr;</span></li><li><a href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc?annotate=blame" title="Annoter chaque ligne avec la révision de la dernière modification (ce procédé peut-être coûteux en temps...)">Annoter</a></li><li class="last"><a href="/hug/intranet-tma/trac/log/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc">Journal des révisions</a></li>
+          </ul>
+        <hr />
+      </div>
+    <div id="content" class="browser">
+          <h1>
+<a class="pathentry first" href="/hug/intranet-tma/trac/browser?order=name" title="Aller à la racine du dépôt">source:</a>
+<a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory?order=name" title="Voir webfactory">webfactory</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk?order=name" title="Voir trunk">trunk</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites?order=name" title="Voir sites">sites</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all?order=name" title="Voir all">all</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules?order=name" title="Voir modules">modules</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom?order=name" title="Voir custom">custom</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree?order=name" title="Voir entity_reference_tree">entity_reference_tree</a><span class="pathentry sep">/</span><a class="pathentry" href="/hug/intranet-tma/trac/browser/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc?order=name" title="Voir entity_reference_tree.widget.inc">entity_reference_tree.widget.inc</a>
+<span class="pathentry sep">@</span>
+  <a class="pathentry" href="/hug/intranet-tma/trac/changeset/2519" title="Voir la révision 2519">2519</a>
+<br style="clear: both" />
+</h1>
+        <div id="jumprev">
+          <form action="" method="get">
+            <div>
+              <label for="rev">
+                Afficher la révision :</label>
+              <input type="text" id="rev" name="rev" size="6" />
+            </div>
+          </form>
+        </div>
+        <div id="jumploc">
+          <form action="" method="get">
+            <div class="buttons">
+              <label for="preselected">Explorer :</label>
+              <select id="preselected" name="preselected">
+                <option selected="selected"></option>
+                <optgroup label="branches">
+                  <option value="/hug/intranet-tma/trac/browser/trunk">trunk</option>
+                </optgroup>
+              </select>
+              <input type="submit" value="Aller" title="Saut direct au chemin préselectionné" />
+            </div>
+          </form>
+        </div>
+      <table id="info" summary="Info révision">
+        <tr>
+          <th scope="col">Révision <a href="/hug/intranet-tma/trac/changeset/2418">2418</a>,
+            <span title="24141 octets">23.6 KB</span>
+            produite par fredrik.lahode, il y a <a class="timeline" href="/hug/intranet-tma/trac/timeline?from=2014-04-15T15%3A10%3A31%2B02%3A00&amp;precision=second" title="2014-04-15T15:10:31+02:00 dans « Activité »">5 semaines</a>
+            (<a href="/hug/intranet-tma/trac/changeset/2418/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc">différences</a>)</th>
+        </tr>
+        <tr>
+          <td class="message searchable">
+          </td>
+        </tr>
+      </table>
+      <div id="preview" class="searchable">
+        
+  <table class="code"><thead><tr><th class="lineno" title="Numéros de lignes">Ligne</th><th class="content"> </th></tr></thead><tbody><tr><th id="L1"><a href="#L1">1</a></th><td>&lt;?php</td></tr><tr><th id="L2"><a href="#L2">2</a></th><td></td></tr><tr><th id="L3"><a href="#L3">3</a></th><td>/**</td></tr><tr><th id="L4"><a href="#L4">4</a></th><td> * Themes the OG group tree display (as opposed to the select widget).</td></tr><tr><th id="L5"><a href="#L5">5</a></th><td> */</td></tr><tr><th id="L6"><a href="#L6">6</a></th><td>function theme_entity_reference_tree_list($variables) {</td></tr><tr><th id="L7"><a href="#L7">7</a></th><td>  $element =&amp; $variables['element'];</td></tr><tr><th id="L8"><a href="#L8">8</a></th><td>  $data =&amp; $element['#data'];</td></tr><tr><th id="L9"><a href="#L9">9</a></th><td>  $tree = array();</td></tr><tr><th id="L10"><a href="#L10">10</a></th><td></td></tr><tr><th id="L11"><a href="#L11">11</a></th><td>  # For each selected group:</td></tr><tr><th id="L12"><a href="#L12">12</a></th><td>  foreach($data as $item) {</td></tr><tr><th id="L13"><a href="#L13">13</a></th><td>    # Loop if the group ID is not zero:</td></tr><tr><th id="L14"><a href="#L14">14</a></th><td>    $values = array();</td></tr><tr><th id="L15"><a href="#L15">15</a></th><td>    $id = $item[$element['#display']['settings']['target_id']];</td></tr><tr><th id="L16"><a href="#L16">16</a></th><td>    $original_id = $id;</td></tr><tr><th id="L17"><a href="#L17">17</a></th><td>    while ($id != 0) {</td></tr><tr><th id="L18"><a href="#L18">18</a></th><td>      // Unshift the term onto an array</td></tr><tr><th id="L19"><a href="#L19">19</a></th><td>      array_unshift($values, $id);</td></tr><tr><th id="L20"><a href="#L20">20</a></th><td></td></tr><tr><th id="L21"><a href="#L21">21</a></th><td>      # Repeat with parent group</td></tr><tr><th id="L22"><a href="#L22">22</a></th><td>      $id = current(module_invoke_all('get_entity_parent', $element, $id));</td></tr><tr><th id="L23"><a href="#L23">23</a></th><td>    }</td></tr><tr><th id="L24"><a href="#L24">24</a></th><td>    $current =&amp; $tree;</td></tr><tr><th id="L25"><a href="#L25">25</a></th><td>    # For each group in the above array:</td></tr><tr><th id="L26"><a href="#L26">26</a></th><td>    foreach($values as $id) {</td></tr><tr><th id="L27"><a href="#L27">27</a></th><td>      # current[children][group_id] = new array</td></tr><tr><th id="L28"><a href="#L28">28</a></th><td>      if (!isset($current['children'][$id])) {</td></tr><tr><th id="L29"><a href="#L29">29</a></th><td>        $current['children'][$id] = array('selected' =&gt; FALSE);</td></tr><tr><th id="L30"><a href="#L30">30</a></th><td>      }</td></tr><tr><th id="L31"><a href="#L31">31</a></th><td></td></tr><tr><th id="L32"><a href="#L32">32</a></th><td>      # If this is the last value in the array, tree[children][group_id][selected] = true</td></tr><tr><th id="L33"><a href="#L33">33</a></th><td>      if ($id == $original_id) {</td></tr><tr><th id="L34"><a href="#L34">34</a></th><td>        $current['children'][$id]['selected'] = TRUE;</td></tr><tr><th id="L35"><a href="#L35">35</a></th><td>      }</td></tr><tr><th id="L36"><a href="#L36">36</a></th><td></td></tr><tr><th id="L37"><a href="#L37">37</a></th><td>      $current['children'][$id]['id'] = $id;</td></tr><tr><th id="L38"><a href="#L38">38</a></th><td>      $current =&amp; $current['children'][$id];</td></tr><tr><th id="L39"><a href="#L39">39</a></th><td>    }</td></tr><tr><th id="L40"><a href="#L40">40</a></th><td>  }</td></tr><tr><th id="L41"><a href="#L41">41</a></th><td></td></tr><tr><th id="L42"><a href="#L42">42</a></th><td>  $output = "&lt;div class='entity-tree-list'&gt;";</td></tr><tr><th id="L43"><a href="#L43">43</a></th><td>  $output .= _entity_reference_tree_output_list_level($element, $tree);</td></tr><tr><th id="L44"><a href="#L44">44</a></th><td>  $output .= "&lt;/div&gt;";</td></tr><tr><th id="L45"><a href="#L45">45</a></th><td>  return $output;</td></tr><tr><th id="L46"><a href="#L46">46</a></th><td>}</td></tr><tr><th id="L47"><a href="#L47">47</a></th><td></td></tr><tr><th id="L48"><a href="#L48">48</a></th><td>/**</td></tr><tr><th id="L49"><a href="#L49">49</a></th><td> * Helper function to output a single level of the term reference tree</td></tr><tr><th id="L50"><a href="#L50">50</a></th><td> * display.</td></tr><tr><th id="L51"><a href="#L51">51</a></th><td> */</td></tr><tr><th id="L52"><a href="#L52">52</a></th><td>function _entity_reference_tree_output_list_level(&amp;$element, &amp;$tree) {</td></tr><tr><th id="L53"><a href="#L53">53</a></th><td>  if (isset($tree['children']) &amp;&amp; is_array($tree['children']) &amp;&amp; count($tree['children'] &gt; 0)) {</td></tr><tr><th id="L54"><a href="#L54">54</a></th><td>    $output = '&lt;ul class="entity"&gt;';</td></tr><tr><th id="L55"><a href="#L55">55</a></th><td>    $settings = $element['#display']['settings'];</td></tr><tr><th id="L56"><a href="#L56">56</a></th><td>    $tokens_selected = $settings['token_display_selected'];</td></tr><tr><th id="L57"><a href="#L57">57</a></th><td>    $tokens_unselected = ($settings['token_display_unselected'] != '') ? $settings['token_display_unselected'] : $tokens_selected;</td></tr><tr><th id="L58"><a href="#L58">58</a></th><td></td></tr><tr><th id="L59"><a href="#L59">59</a></th><td>    $entity_info = entity_get_info($settings['target_entity']);</td></tr><tr><th id="L60"><a href="#L60">60</a></th><td>    foreach ($tree['children'] as &amp;$item) {</td></tr><tr><th id="L61"><a href="#L61">61</a></th><td>      $entity = $entity_info['load hook']($item['id']);</td></tr><tr><th id="L62"><a href="#L62">62</a></th><td>      $uri = $entity_info['uri callback']($entity);</td></tr><tr><th id="L63"><a href="#L63">63</a></th><td>      $uri['options']['html'] = TRUE;</td></tr><tr><th id="L64"><a href="#L64">64</a></th><td>      $class = $item['selected'] ? 'selected' : 'unselected';</td></tr><tr><th id="L65"><a href="#L65">65</a></th><td>      $output .= "&lt;li class='$class'&gt;";</td></tr><tr><th id="L66"><a href="#L66">66</a></th><td>      if ($tokens_selected != '' &amp;&amp; module_exists('token')) {</td></tr><tr><th id="L67"><a href="#L67">67</a></th><td>        $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;</td></tr><tr><th id="L68"><a href="#L68">68</a></th><td>        $output .= token_replace($replace, array('entity' =&gt; $entity), array('clear' =&gt; TRUE));</td></tr><tr><th id="L69"><a href="#L69">69</a></th><td>      }</td></tr><tr><th id="L70"><a href="#L70">70</a></th><td>      else {</td></tr><tr><th id="L71"><a href="#L71">71</a></th><td>        $output .= l(entity_label($settings['target_entity'], $entity), $uri['path'], $uri['options']);</td></tr><tr><th id="L72"><a href="#L72">72</a></th><td>      }</td></tr><tr><th id="L73"><a href="#L73">73</a></th><td>      if (isset($item['children'])) {</td></tr><tr><th id="L74"><a href="#L74">74</a></th><td>        $output .= _entity_reference_tree_output_list_level($element, $item);</td></tr><tr><th id="L75"><a href="#L75">75</a></th><td>      }</td></tr><tr><th id="L76"><a href="#L76">76</a></th><td>      $output .= "&lt;/li&gt;";</td></tr><tr><th id="L77"><a href="#L77">77</a></th><td>    }</td></tr><tr><th id="L78"><a href="#L78">78</a></th><td></td></tr><tr><th id="L79"><a href="#L79">79</a></th><td>    $output .= '&lt;/ul&gt;';</td></tr><tr><th id="L80"><a href="#L80">80</a></th><td>    return $output;</td></tr><tr><th id="L81"><a href="#L81">81</a></th><td>  }</td></tr><tr><th id="L82"><a href="#L82">82</a></th><td>}</td></tr><tr><th id="L83"><a href="#L83">83</a></th><td></td></tr><tr><th id="L84"><a href="#L84">84</a></th><td>/**</td></tr><tr><th id="L85"><a href="#L85">85</a></th><td> * Makes sure that cardinality is unlimited if auto-select parents is enabled.</td></tr><tr><th id="L86"><a href="#L86">86</a></th><td> */</td></tr><tr><th id="L87"><a href="#L87">87</a></th><td>function _entity_reference_tree_select_parents_validate($element, &amp;$form_state) {</td></tr><tr><th id="L88"><a href="#L88">88</a></th><td>  if ($form_state['values']['instance']['widget']['settings']['select_parents'] == 1 &amp;&amp; $form_state['values']['field']['cardinality'] != -1) {</td></tr><tr><th id="L89"><a href="#L89">89</a></th><td>    // This is pretty wonky syntax for the field name in form_set_error, but it's</td></tr><tr><th id="L90"><a href="#L90">90</a></th><td>    // correct.</td></tr><tr><th id="L91"><a href="#L91">91</a></th><td>    form_set_error('field][cardinality', t('You must select an Unlimited number of values if Select Parents Automatically is enabled.'));</td></tr><tr><th id="L92"><a href="#L92">92</a></th><td>  }</td></tr><tr><th id="L93"><a href="#L93">93</a></th><td>}</td></tr><tr><th id="L94"><a href="#L94">94</a></th><td></td></tr><tr><th id="L95"><a href="#L95">95</a></th><td>/**</td></tr><tr><th id="L96"><a href="#L96">96</a></th><td> * Makes sure that cardinality is unlimited if cascading selection is enabled.</td></tr><tr><th id="L97"><a href="#L97">97</a></th><td> */</td></tr><tr><th id="L98"><a href="#L98">98</a></th><td>function _entity_reference_tree_cascading_selection_validate($element, &amp;$form_state) {</td></tr><tr><th id="L99"><a href="#L99">99</a></th><td>  if ($form_state['values']['instance']['widget']['settings']['cascading_selection'] == 1 &amp;&amp; $form_state['values']['field']['cardinality'] != -1) {</td></tr><tr><th id="L100"><a href="#L100">100</a></th><td>    // This is pretty wonky syntax for the field name in form_set_error, but it's</td></tr><tr><th id="L101"><a href="#L101">101</a></th><td>    // correct.</td></tr><tr><th id="L102"><a href="#L102">102</a></th><td>    form_set_error('field][cardinality', t('You must select an Unlimited number of values if Cascading selection is enabled.'));</td></tr><tr><th id="L103"><a href="#L103">103</a></th><td>  }</td></tr><tr><th id="L104"><a href="#L104">104</a></th><td>}</td></tr><tr><th id="L105"><a href="#L105">105</a></th><td></td></tr><tr><th id="L106"><a href="#L106">106</a></th><td>/**</td></tr><tr><th id="L107"><a href="#L107">107</a></th><td> * Processthe checkbox_tree widget.</td></tr><tr><th id="L108"><a href="#L108">108</a></th><td> *</td></tr><tr><th id="L109"><a href="#L109">109</a></th><td> * This function processes the checkbox_tree widget.</td></tr><tr><th id="L110"><a href="#L110">110</a></th><td> *</td></tr><tr><th id="L111"><a href="#L111">111</a></th><td> * @param $element</td></tr><tr><th id="L112"><a href="#L112">112</a></th><td> *   The element to be drawn.</td></tr><tr><th id="L113"><a href="#L113">113</a></th><td> * @param $form_state</td></tr><tr><th id="L114"><a href="#L114">114</a></th><td> *   The form state.</td></tr><tr><th id="L115"><a href="#L115">115</a></th><td> *</td></tr><tr><th id="L116"><a href="#L116">116</a></th><td> * @return</td></tr><tr><th id="L117"><a href="#L117">117</a></th><td> *   The processed element.</td></tr><tr><th id="L118"><a href="#L118">118</a></th><td> */</td></tr><tr><th id="L119"><a href="#L119">119</a></th><td>function entity_reference_tree_process_checkbox_tree($element, $form_state) {</td></tr><tr><th id="L120"><a href="#L120">120</a></th><td></td></tr><tr><th id="L121"><a href="#L121">121</a></th><td>  // Get element in cache if #cache has been defined.</td></tr><tr><th id="L122"><a href="#L122">122</a></th><td>  if (isset($element['#cache']) &amp;&amp; drupal_strlen($element['#cache']) &gt; 3 &amp;&amp; $cached = cache_get('ert_' . $element['#cache'], 'cache')) {</td></tr><tr><th id="L123"><a href="#L123">123</a></th><td>    $element = $cached-&gt;data;</td></tr><tr><th id="L124"><a href="#L124">124</a></th><td>  }</td></tr><tr><th id="L125"><a href="#L125">125</a></th><td>  elseif (is_array($form_state)) {</td></tr><tr><th id="L126"><a href="#L126">126</a></th><td></td></tr><tr><th id="L127"><a href="#L127">127</a></th><td>    // Retrieve target entity.</td></tr><tr><th id="L128"><a href="#L128">128</a></th><td>    $entity_info = isset($element['#target_entity']) ? entity_get_info($element['#target_entity']) : NULL;</td></tr><tr><th id="L129"><a href="#L129">129</a></th><td></td></tr><tr><th id="L130"><a href="#L130">130</a></th><td>    // Set all default mandatory value to the element.</td></tr><tr><th id="L131"><a href="#L131">131</a></th><td>    entity_reference_tree_prepare_object($element);</td></tr><tr><th id="L132"><a href="#L132">132</a></th><td></td></tr><tr><th id="L133"><a href="#L133">133</a></th><td>    // For Form API element, transform the hierarchical #options array into an object.</td></tr><tr><th id="L134"><a href="#L134">134</a></th><td>    if (isset($element['#options']) &amp;&amp; $element['#options'] &amp;&amp; !$entity_info) {</td></tr><tr><th id="L135"><a href="#L135">135</a></th><td>      $element['#options_tree'] = entity_reference_tree_array_to_object($element['#options']);</td></tr><tr><th id="L136"><a href="#L136">136</a></th><td>    }</td></tr><tr><th id="L137"><a href="#L137">137</a></th><td></td></tr><tr><th id="L138"><a href="#L138">138</a></th><td>    // Add max choices settings.</td></tr><tr><th id="L139"><a href="#L139">139</a></th><td>    if (!empty($element['#max_choices']) &amp;&amp; $element['#max_choices'] != '-1') {</td></tr><tr><th id="L140"><a href="#L140">140</a></th><td>      drupal_add_js(array('entity_reference_tree' =&gt; array('trees' =&gt; array($element['#id'] =&gt; array('max_choices' =&gt; $element['#max_choices'])))), 'setting');</td></tr><tr><th id="L141"><a href="#L141">141</a></th><td>    }</td></tr><tr><th id="L142"><a href="#L142">142</a></th><td></td></tr><tr><th id="L143"><a href="#L143">143</a></th><td>    // Get allowed values.</td></tr><tr><th id="L144"><a href="#L144">144</a></th><td>    $allowed = '';</td></tr><tr><th id="L145"><a href="#L145">145</a></th><td>    if (isset($element['#filter_view']) &amp;&amp; $element['#filter_view'] != '') {</td></tr><tr><th id="L146"><a href="#L146">146</a></th><td>      $allowed = _entity_reference_tree_get_allowed_values($element);</td></tr><tr><th id="L147"><a href="#L147">147</a></th><td>    }</td></tr><tr><th id="L148"><a href="#L148">148</a></th><td></td></tr><tr><th id="L149"><a href="#L149">149</a></th><td>    // Get default values.</td></tr><tr><th id="L150"><a href="#L150">150</a></th><td>    $value = !empty($element['#default_value']) ? $element['#default_value'] : array();</td></tr><tr><th id="L151"><a href="#L151">151</a></th><td></td></tr><tr><th id="L152"><a href="#L152">152</a></th><td>    // If no #options has been set and the widget is attached to a field entity, retreive the hierarchy.</td></tr><tr><th id="L153"><a href="#L153">153</a></th><td>    if (empty($element['#options']) &amp;&amp; $entity_info) {</td></tr><tr><th id="L154"><a href="#L154">154</a></th><td>      $element['#options_tree'] = module_invoke_all('get_entity_hierarchy', $element, $allowed, $value);</td></tr><tr><th id="L155"><a href="#L155">155</a></th><td></td></tr><tr><th id="L156"><a href="#L156">156</a></th><td>      $required = $element['#required'];</td></tr><tr><th id="L157"><a href="#L157">157</a></th><td>      if ($element['#max_choices'] == 1 &amp;&amp; !$required) {</td></tr><tr><th id="L158"><a href="#L158">158</a></th><td>        array_unshift($element['#options_tree'], (object) array(</td></tr><tr><th id="L159"><a href="#L159">159</a></th><td>          $entity_info['entity keys']['id'] =&gt; '',</td></tr><tr><th id="L160"><a href="#L160">160</a></th><td>          $entity_info['entity keys']['label'] =&gt; 'N/A',</td></tr><tr><th id="L161"><a href="#L161">161</a></th><td>          'depth' =&gt; 0,</td></tr><tr><th id="L162"><a href="#L162">162</a></th><td>        ));</td></tr><tr><th id="L163"><a href="#L163">163</a></th><td>      }</td></tr><tr><th id="L164"><a href="#L164">164</a></th><td>      $element['#options'] = _entity_reference_tree_get_options($element['#options_tree'], $allowed, $element['#filter_view'], $entity_info['entity keys']['id'], $entity_info['entity keys']['label']);</td></tr><tr><th id="L165"><a href="#L165">165</a></th><td>    }</td></tr><tr><th id="L166"><a href="#L166">166</a></th><td>    $entities = !empty($element['#options_tree']) ? $element['#options_tree'] : array();</td></tr><tr><th id="L167"><a href="#L167">167</a></th><td></td></tr><tr><th id="L168"><a href="#L168">168</a></th><td>    // Set max choices settings.</td></tr><tr><th id="L169"><a href="#L169">169</a></th><td>    $max_choices = isset($element['#max_choices']) ? $element['#max_choices'] : 1;</td></tr><tr><th id="L170"><a href="#L170">170</a></th><td>    if (array_key_exists('#select_parents', $element) &amp;&amp; $element['#select_parents']) {</td></tr><tr><th id="L171"><a href="#L171">171</a></th><td>      $element['#attributes']['class'][] = 'select-parents';</td></tr><tr><th id="L172"><a href="#L172">172</a></th><td>    }</td></tr><tr><th id="L173"><a href="#L173">173</a></th><td>    if ($max_choices != 1) {</td></tr><tr><th id="L174"><a href="#L174">174</a></th><td>      $element['#tree'] = TRUE;</td></tr><tr><th id="L175"><a href="#L175">175</a></th><td>    }</td></tr><tr><th id="L176"><a href="#L176">176</a></th><td></td></tr><tr><th id="L177"><a href="#L177">177</a></th><td>    // Build the tree.</td></tr><tr><th id="L178"><a href="#L178">178</a></th><td>    $tree = new stdClass();</td></tr><tr><th id="L179"><a href="#L179">179</a></th><td>    $tree-&gt;children = $entities;</td></tr><tr><th id="L180"><a href="#L180">180</a></th><td>    $element[] = _entity_reference_tree_build_level($element, $tree, $form_state, $value, $max_choices, array(), 1);</td></tr><tr><th id="L181"><a href="#L181">181</a></th><td></td></tr><tr><th id="L182"><a href="#L182">182</a></th><td>    // Add a track list element?</td></tr><tr><th id="L183"><a href="#L183">183</a></th><td>    $track_list = !empty($element['#track_list']) &amp;&amp; $element['#track_list'];</td></tr><tr><th id="L184"><a href="#L184">184</a></th><td>    if ($track_list) {</td></tr><tr><th id="L185"><a href="#L185">185</a></th><td>      $element[] = array(</td></tr><tr><th id="L186"><a href="#L186">186</a></th><td>        '#type' =&gt; 'checkbox_tree_track_list',</td></tr><tr><th id="L187"><a href="#L187">187</a></th><td>        '#max_choices' =&gt; $max_choices,</td></tr><tr><th id="L188"><a href="#L188">188</a></th><td>      );</td></tr><tr><th id="L189"><a href="#L189">189</a></th><td>    }</td></tr><tr><th id="L190"><a href="#L190">190</a></th><td></td></tr><tr><th id="L191"><a href="#L191">191</a></th><td>    // If #cache has been define, set cache for the first time.</td></tr><tr><th id="L192"><a href="#L192">192</a></th><td>    if (isset($element['#cache']) &amp;&amp; $element['#cache']) {</td></tr><tr><th id="L193"><a href="#L193">193</a></th><td>      cache_set('ert_' . $element['#cache'], $element, 'cache', $expire = CACHE_TEMPORARY);</td></tr><tr><th id="L194"><a href="#L194">194</a></th><td>    }</td></tr><tr><th id="L195"><a href="#L195">195</a></th><td>  }</td></tr><tr><th id="L196"><a href="#L196">196</a></th><td></td></tr><tr><th id="L197"><a href="#L197">197</a></th><td>  return $element;</td></tr><tr><th id="L198"><a href="#L198">198</a></th><td>}</td></tr><tr><th id="L199"><a href="#L199">199</a></th><td></td></tr><tr><th id="L200"><a href="#L200">200</a></th><td>/**</td></tr><tr><th id="L201"><a href="#L201">201</a></th><td> * Prepare the element before rendering the form.</td></tr><tr><th id="L202"><a href="#L202">202</a></th><td> *</td></tr><tr><th id="L203"><a href="#L203">203</a></th><td> * @param $element</td></tr><tr><th id="L204"><a href="#L204">204</a></th><td> *   The element to be drawn.</td></tr><tr><th id="L205"><a href="#L205">205</a></th><td> *</td></tr><tr><th id="L206"><a href="#L206">206</a></th><td> * @return</td></tr><tr><th id="L207"><a href="#L207">207</a></th><td> *   The processed element.</td></tr><tr><th id="L208"><a href="#L208">208</a></th><td> */</td></tr><tr><th id="L209"><a href="#L209">209</a></th><td>function entity_reference_tree_prepare_object(&amp;$element) {</td></tr><tr><th id="L210"><a href="#L210">210</a></th><td>  if (!isset($element['#attached'])) {</td></tr><tr><th id="L211"><a href="#L211">211</a></th><td>    $element['#attached'] = array(</td></tr><tr><th id="L212"><a href="#L212">212</a></th><td>      'js' =&gt; array(</td></tr><tr><th id="L213"><a href="#L213">213</a></th><td>        0 =&gt; 'sites/all/modules/custom/entity_reference_tree/entity_reference_tree.js'</td></tr><tr><th id="L214"><a href="#L214">214</a></th><td>      ),</td></tr><tr><th id="L215"><a href="#L215">215</a></th><td>      'css' =&gt; array(</td></tr><tr><th id="L216"><a href="#L216">216</a></th><td>        0 =&gt; 'sites/all/modules/custom/entity_reference_tree/entity_reference_tree.css',</td></tr><tr><th id="L217"><a href="#L217">217</a></th><td>      ),</td></tr><tr><th id="L218"><a href="#L218">218</a></th><td>    );</td></tr><tr><th id="L219"><a href="#L219">219</a></th><td>  }</td></tr><tr><th id="L220"><a href="#L220">220</a></th><td>  $element['#max_choices'] = isset($element['#max_choices']) ? $element['#max_choices'] : 1;</td></tr><tr><th id="L221"><a href="#L221">221</a></th><td>  $element['#max_depth'] = isset($element['#max_depth']) ? $element['#max_depth'] : '';</td></tr><tr><th id="L222"><a href="#L222">222</a></th><td>  $element['#start_minimized'] = isset($element['#start_minimized']) ? $element['#start_minimized'] : 1;</td></tr><tr><th id="L223"><a href="#L223">223</a></th><td>  $element['#leaves_only'] = isset($element['#leaves_only']) ? $element['#leaves_only'] : 0;</td></tr><tr><th id="L224"><a href="#L224">224</a></th><td>  $element['#filter_view'] = isset($element['#filter_view']) ? $element['#filter_view'] : '';</td></tr><tr><th id="L225"><a href="#L225">225</a></th><td>  $element['#filter_view_arg_type'] = isset($element['#filter_view_arg_type']) ? $element['#filter_view_arg_type'] : 0;</td></tr><tr><th id="L226"><a href="#L226">226</a></th><td>  $element['#allowed_ids'] = isset($element['#allowed_ids']) ? $element['#allowed_ids'] : array();</td></tr><tr><th id="L227"><a href="#L227">227</a></th><td>  $element['#select_parents'] = isset($element['#select_parents']) ? $element['#select_parents'] : 0;</td></tr><tr><th id="L228"><a href="#L228">228</a></th><td>  if (!isset($element['#element_validate']) || !in_array('_entity_reference_tree_widget_validate', $element['#element_validate'])) $element['#element_validate'][] = '_entity_reference_tree_widget_validate';</td></tr><tr><th id="L229"><a href="#L229">229</a></th><td>}</td></tr><tr><th id="L230"><a href="#L230">230</a></th><td></td></tr><tr><th id="L231"><a href="#L231">231</a></th><td>/**</td></tr><tr><th id="L232"><a href="#L232">232</a></th><td> * Tranform an array into an object.</td></tr><tr><th id="L233"><a href="#L233">233</a></th><td> *</td></tr><tr><th id="L234"><a href="#L234">234</a></th><td> * @param $array</td></tr><tr><th id="L235"><a href="#L235">235</a></th><td> *</td></tr><tr><th id="L236"><a href="#L236">236</a></th><td> * @return</td></tr><tr><th id="L237"><a href="#L237">237</a></th><td> *   The converted object.</td></tr><tr><th id="L238"><a href="#L238">238</a></th><td> */</td></tr><tr><th id="L239"><a href="#L239">239</a></th><td>function entity_reference_tree_array_to_object($array) {</td></tr><tr><th id="L240"><a href="#L240">240</a></th><td>  $resultObj = new \stdClass;</td></tr><tr><th id="L241"><a href="#L241">241</a></th><td>  $resultArr = array();</td></tr><tr><th id="L242"><a href="#L242">242</a></th><td>  $hasIntKeys = false;</td></tr><tr><th id="L243"><a href="#L243">243</a></th><td>  $hasStrKeys = false;</td></tr><tr><th id="L244"><a href="#L244">244</a></th><td>  foreach ($array as $k =&gt; $v) {</td></tr><tr><th id="L245"><a href="#L245">245</a></th><td>    if (!$hasIntKeys) {</td></tr><tr><th id="L246"><a href="#L246">246</a></th><td>      $hasIntKeys = is_int($k);</td></tr><tr><th id="L247"><a href="#L247">247</a></th><td>    }</td></tr><tr><th id="L248"><a href="#L248">248</a></th><td>    if (!$hasStrKeys) {</td></tr><tr><th id="L249"><a href="#L249">249</a></th><td>      $hasStrKeys = is_string($k);</td></tr><tr><th id="L250"><a href="#L250">250</a></th><td>    }</td></tr><tr><th id="L251"><a href="#L251">251</a></th><td>    if ($hasIntKeys &amp;&amp; $hasStrKeys) {</td></tr><tr><th id="L252"><a href="#L252">252</a></th><td>      $e = new \Exception('Current level has both integer and string keys, thus it is impossible to keep array or convert to object');</td></tr><tr><th id="L253"><a href="#L253">253</a></th><td>      $e-&gt;vars = array('level' =&gt; $array);</td></tr><tr><th id="L254"><a href="#L254">254</a></th><td>      throw $e;</td></tr><tr><th id="L255"><a href="#L255">255</a></th><td>    }</td></tr><tr><th id="L256"><a href="#L256">256</a></th><td>    if ($hasStrKeys) {</td></tr><tr><th id="L257"><a href="#L257">257</a></th><td>      $resultObj-&gt;{$k} = is_array($v) ? entity_reference_tree_array_to_object($v) : $v;</td></tr><tr><th id="L258"><a href="#L258">258</a></th><td>    } else {</td></tr><tr><th id="L259"><a href="#L259">259</a></th><td>      $resultArr[$k] = is_array($v) ? entity_reference_tree_array_to_object($v) : $v;</td></tr><tr><th id="L260"><a href="#L260">260</a></th><td>    }</td></tr><tr><th id="L261"><a href="#L261">261</a></th><td>  }</td></tr><tr><th id="L262"><a href="#L262">262</a></th><td>  return ($hasStrKeys) ? $resultObj : $resultArr;</td></tr><tr><th id="L263"><a href="#L263">263</a></th><td>}</td></tr><tr><th id="L264"><a href="#L264">264</a></th><td></td></tr><tr><th id="L265"><a href="#L265">265</a></th><td>/**</td></tr><tr><th id="L266"><a href="#L266">266</a></th><td> * Returns HTML for a checkbox_tree form element.</td></tr><tr><th id="L267"><a href="#L267">267</a></th><td> *</td></tr><tr><th id="L268"><a href="#L268">268</a></th><td> * @param $variables</td></tr><tr><th id="L269"><a href="#L269">269</a></th><td> *   An associative array containing:</td></tr><tr><th id="L270"><a href="#L270">270</a></th><td> *   - element: An associative array containing the properties of the element.</td></tr><tr><th id="L271"><a href="#L271">271</a></th><td> *</td></tr><tr><th id="L272"><a href="#L272">272</a></th><td> * @ingroup themeable</td></tr><tr><th id="L273"><a href="#L273">273</a></th><td> */</td></tr><tr><th id="L274"><a href="#L274">274</a></th><td>function theme_checkbox_tree($variables) {</td></tr><tr><th id="L275"><a href="#L275">275</a></th><td>  $element = $variables['element'];</td></tr><tr><th id="L276"><a href="#L276">276</a></th><td>  $element['#children'] = drupal_render_children($element);</td></tr><tr><th id="L277"><a href="#L277">277</a></th><td></td></tr><tr><th id="L278"><a href="#L278">278</a></th><td>  $attributes = array();</td></tr><tr><th id="L279"><a href="#L279">279</a></th><td>  if (isset($element['#id'])) {</td></tr><tr><th id="L280"><a href="#L280">280</a></th><td>    $attributes['id'] = $element['#id'];</td></tr><tr><th id="L281"><a href="#L281">281</a></th><td>  }</td></tr><tr><th id="L282"><a href="#L282">282</a></th><td>  $attributes['class'][] = 'entity-reference-tree';</td></tr><tr><th id="L283"><a href="#L283">283</a></th><td></td></tr><tr><th id="L284"><a href="#L284">284</a></th><td>  if (form_get_error($element)) {</td></tr><tr><th id="L285"><a href="#L285">285</a></th><td>    $attributes['class'][] = 'error';</td></tr><tr><th id="L286"><a href="#L286">286</a></th><td>  }</td></tr><tr><th id="L287"><a href="#L287">287</a></th><td></td></tr><tr><th id="L288"><a href="#L288">288</a></th><td>  if (!empty($element['#required'])) {</td></tr><tr><th id="L289"><a href="#L289">289</a></th><td>    $attributes['class'][] = 'required';</td></tr><tr><th id="L290"><a href="#L290">290</a></th><td>  }</td></tr><tr><th id="L291"><a href="#L291">291</a></th><td></td></tr><tr><th id="L292"><a href="#L292">292</a></th><td>  if (array_key_exists('#start_minimized', $element) &amp;&amp; $element['#start_minimized']) {</td></tr><tr><th id="L293"><a href="#L293">293</a></th><td>    $attributes['class'][] = "entity-reference-tree-start-minimized";</td></tr><tr><th id="L294"><a href="#L294">294</a></th><td>  }</td></tr><tr><th id="L295"><a href="#L295">295</a></th><td></td></tr><tr><th id="L296"><a href="#L296">296</a></th><td>  if (array_key_exists('#cascading_selection', $element) &amp;&amp; $element['#cascading_selection']) {</td></tr><tr><th id="L297"><a href="#L297">297</a></th><td>    $attributes['class'][] = "entity-reference-tree-cascading-selection";</td></tr><tr><th id="L298"><a href="#L298">298</a></th><td>  }</td></tr><tr><th id="L299"><a href="#L299">299</a></th><td></td></tr><tr><th id="L300"><a href="#L300">300</a></th><td>  $add_track_list = FALSE;</td></tr><tr><th id="L301"><a href="#L301">301</a></th><td>  if (array_key_exists('#track_list', $element) &amp;&amp; $element['#track_list']) {</td></tr><tr><th id="L302"><a href="#L302">302</a></th><td>    $attributes['class'][] = "entity-reference-tree-track-list-shown";</td></tr><tr><th id="L303"><a href="#L303">303</a></th><td>    $add_track_list = TRUE;</td></tr><tr><th id="L304"><a href="#L304">304</a></th><td>  }</td></tr><tr><th id="L305"><a href="#L305">305</a></th><td></td></tr><tr><th id="L306"><a href="#L306">306</a></th><td>  if (!empty($element['#attributes']['class'])) {</td></tr><tr><th id="L307"><a href="#L307">307</a></th><td>    $attributes['class'] = array_merge($attributes['class'], $element['#attributes']['class']);</td></tr><tr><th id="L308"><a href="#L308">308</a></th><td>  }</td></tr><tr><th id="L309"><a href="#L309">309</a></th><td>  return</td></tr><tr><th id="L310"><a href="#L310">310</a></th><td>      '&lt;div' . drupal_attributes($attributes) . '&gt;'</td></tr><tr><th id="L311"><a href="#L311">311</a></th><td>    . (!empty($element['#children']) ? $element['#children'] : '')</td></tr><tr><th id="L312"><a href="#L312">312</a></th><td>    . '&lt;/div&gt;';</td></tr><tr><th id="L313"><a href="#L313">313</a></th><td>}</td></tr><tr><th id="L314"><a href="#L314">314</a></th><td></td></tr><tr><th id="L315"><a href="#L315">315</a></th><td>/**</td></tr><tr><th id="L316"><a href="#L316">316</a></th><td> * This function prints a list item with a checkbox and an unordered list</td></tr><tr><th id="L317"><a href="#L317">317</a></th><td> * of all the elements inside it.</td></tr><tr><th id="L318"><a href="#L318">318</a></th><td> */</td></tr><tr><th id="L319"><a href="#L319">319</a></th><td>function theme_checkbox_tree_level($variables) {</td></tr><tr><th id="L320"><a href="#L320">320</a></th><td>  $element = $variables['element'];</td></tr><tr><th id="L321"><a href="#L321">321</a></th><td>  $sm = '';</td></tr><tr><th id="L322"><a href="#L322">322</a></th><td>  if (array_key_exists('#level_start_minimized', $element) &amp;&amp; $element['#level_start_minimized']) {</td></tr><tr><th id="L323"><a href="#L323">323</a></th><td>    $sm = " style='display: none;'";</td></tr><tr><th id="L324"><a href="#L324">324</a></th><td>  }</td></tr><tr><th id="L325"><a href="#L325">325</a></th><td></td></tr><tr><th id="L326"><a href="#L326">326</a></th><td>  $max_choices = 0;</td></tr><tr><th id="L327"><a href="#L327">327</a></th><td>  if (array_key_exists('#max_choices', $element)) {</td></tr><tr><th id="L328"><a href="#L328">328</a></th><td>    $max_choices = $element['#max_choices'];</td></tr><tr><th id="L329"><a href="#L329">329</a></th><td>  }</td></tr><tr><th id="L330"><a href="#L330">330</a></th><td></td></tr><tr><th id="L331"><a href="#L331">331</a></th><td>  $output = "&lt;ul class='entity-reference-tree-level '$sm&gt;";</td></tr><tr><th id="L332"><a href="#L332">332</a></th><td>  $children = element_children($element);</td></tr><tr><th id="L333"><a href="#L333">333</a></th><td>  foreach ($children as $child) {</td></tr><tr><th id="L334"><a href="#L334">334</a></th><td>    $output .= "&lt;li&gt;";</td></tr><tr><th id="L335"><a href="#L335">335</a></th><td>    $output .= drupal_render($element[$child]);</td></tr><tr><th id="L336"><a href="#L336">336</a></th><td>    $output .= "&lt;/li&gt;";</td></tr><tr><th id="L337"><a href="#L337">337</a></th><td>  }</td></tr><tr><th id="L338"><a href="#L338">338</a></th><td></td></tr><tr><th id="L339"><a href="#L339">339</a></th><td>  $output .= "&lt;/ul&gt;";</td></tr><tr><th id="L340"><a href="#L340">340</a></th><td></td></tr><tr><th id="L341"><a href="#L341">341</a></th><td>  return $output;</td></tr><tr><th id="L342"><a href="#L342">342</a></th><td>}</td></tr><tr><th id="L343"><a href="#L343">343</a></th><td></td></tr><tr><th id="L344"><a href="#L344">344</a></th><td>/**</td></tr><tr><th id="L345"><a href="#L345">345</a></th><td> * This function prints a single item in the tree, followed by that item's children</td></tr><tr><th id="L346"><a href="#L346">346</a></th><td> * (which may be another checkbox_tree_level).</td></tr><tr><th id="L347"><a href="#L347">347</a></th><td> */</td></tr><tr><th id="L348"><a href="#L348">348</a></th><td>function theme_checkbox_tree_item($variables) {</td></tr><tr><th id="L349"><a href="#L349">349</a></th><td>  $element = $variables['element'];</td></tr><tr><th id="L350"><a href="#L350">350</a></th><td>  $children = element_children($element);</td></tr><tr><th id="L351"><a href="#L351">351</a></th><td>  $output = "";</td></tr><tr><th id="L352"><a href="#L352">352</a></th><td></td></tr><tr><th id="L353"><a href="#L353">353</a></th><td>  $sm = $element['#level_start_minimized'] ? ' entity-reference-tree-collapsed' : '';</td></tr><tr><th id="L354"><a href="#L354">354</a></th><td></td></tr><tr><th id="L355"><a href="#L355">355</a></th><td>  if (is_array($children) &amp;&amp; count($children) &gt; 1) {</td></tr><tr><th id="L356"><a href="#L356">356</a></th><td>    $output .= "&lt;div class='entity-reference-tree-button$sm'&gt;&lt;/div&gt;";</td></tr><tr><th id="L357"><a href="#L357">357</a></th><td>  }</td></tr><tr><th id="L358"><a href="#L358">358</a></th><td>  elseif (!$element['#leaves_only']) {</td></tr><tr><th id="L359"><a href="#L359">359</a></th><td>    $output .= "&lt;div class='no-entity-reference-tree-button'&gt;&lt;/div&gt;";</td></tr><tr><th id="L360"><a href="#L360">360</a></th><td>  }</td></tr><tr><th id="L361"><a href="#L361">361</a></th><td></td></tr><tr><th id="L362"><a href="#L362">362</a></th><td>  foreach ($children as $child) {</td></tr><tr><th id="L363"><a href="#L363">363</a></th><td>    $output .= drupal_render($element[$child]);</td></tr><tr><th id="L364"><a href="#L364">364</a></th><td>  }</td></tr><tr><th id="L365"><a href="#L365">365</a></th><td></td></tr><tr><th id="L366"><a href="#L366">366</a></th><td>  return $output;</td></tr><tr><th id="L367"><a href="#L367">367</a></th><td>}</td></tr><tr><th id="L368"><a href="#L368">368</a></th><td></td></tr><tr><th id="L369"><a href="#L369">369</a></th><td>/**</td></tr><tr><th id="L370"><a href="#L370">370</a></th><td> * This function prints a label that cannot be selected.</td></tr><tr><th id="L371"><a href="#L371">371</a></th><td> */</td></tr><tr><th id="L372"><a href="#L372">372</a></th><td>function theme_checkbox_tree_label($variables) {</td></tr><tr><th id="L373"><a href="#L373">373</a></th><td>  $element = $variables['element'];</td></tr><tr><th id="L374"><a href="#L374">374</a></th><td>  $output = "&lt;div class='parent-entity'&gt;" . $element['#value'] . "&lt;/div&gt;";</td></tr><tr><th id="L375"><a href="#L375">375</a></th><td>  return $output;</td></tr><tr><th id="L376"><a href="#L376">376</a></th><td>}</td></tr><tr><th id="L377"><a href="#L377">377</a></th><td></td></tr><tr><th id="L378"><a href="#L378">378</a></th><td>/**</td></tr><tr><th id="L379"><a href="#L379">379</a></th><td> * Shows a list of items that have been checked.</td></tr><tr><th id="L380"><a href="#L380">380</a></th><td> * The display happens on the client-side.</td></tr><tr><th id="L381"><a href="#L381">381</a></th><td> * Use this function to theme the element's label,</td></tr><tr><th id="L382"><a href="#L382">382</a></th><td> * and the "nothing selected" message.</td></tr><tr><th id="L383"><a href="#L383">383</a></th><td> *</td></tr><tr><th id="L384"><a href="#L384">384</a></th><td> * @param $variables</td></tr><tr><th id="L385"><a href="#L385">385</a></th><td> *   Variables available for theming.</td></tr><tr><th id="L386"><a href="#L386">386</a></th><td> */</td></tr><tr><th id="L387"><a href="#L387">387</a></th><td>function theme_checkbox_tree_track_list($variables) {</td></tr><tr><th id="L388"><a href="#L388">388</a></th><td>  // Should the label be singular or plural? Depends on cardinality of entity field.</td></tr><tr><th id="L389"><a href="#L389">389</a></th><td>  static $nothingselected;</td></tr><tr><th id="L390"><a href="#L390">390</a></th><td></td></tr><tr><th id="L391"><a href="#L391">391</a></th><td>  if (!$nothingselected) {</td></tr><tr><th id="L392"><a href="#L392">392</a></th><td>    $nothingselected = t('[Nothing selected]');</td></tr><tr><th id="L393"><a href="#L393">393</a></th><td>    // Add the "Nothing selected" text. To style it, replace it with whatever you want.</td></tr><tr><th id="L394"><a href="#L394">394</a></th><td>    // Could do this with a file instead.</td></tr><tr><th id="L395"><a href="#L395">395</a></th><td>    drupal_add_js(</td></tr><tr><th id="L396"><a href="#L396">396</a></th><td>      'var entityReferenceTreeNothingSelectedText = "' . $nothingselected . '";',</td></tr><tr><th id="L397"><a href="#L397">397</a></th><td>      'inline'</td></tr><tr><th id="L398"><a href="#L398">398</a></th><td>    );</td></tr><tr><th id="L399"><a href="#L399">399</a></th><td>  }</td></tr><tr><th id="L400"><a href="#L400">400</a></th><td></td></tr><tr><th id="L401"><a href="#L401">401</a></th><td>  $label = format_plural(</td></tr><tr><th id="L402"><a href="#L402">402</a></th><td>      $variables['element']['#max_choices'],</td></tr><tr><th id="L403"><a href="#L403">403</a></th><td>      'Selected item (click the item to uncheck it)',</td></tr><tr><th id="L404"><a href="#L404">404</a></th><td>      'Selected items (click an item to uncheck it)'</td></tr><tr><th id="L405"><a href="#L405">405</a></th><td>  );</td></tr><tr><th id="L406"><a href="#L406">406</a></th><td>  $output = '&lt;div class="entity-reference-track-list-container"&gt;';</td></tr><tr><th id="L407"><a href="#L407">407</a></th><td>  $output .= '&lt;div class="entity-reference-track-list-label"&gt;' . $label . '&lt;/div&gt;';</td></tr><tr><th id="L408"><a href="#L408">408</a></th><td>  $output .= '&lt;ul class="entity-reference-tree-track-list"&gt;&lt;li class="entity_ref_tree_nothing_message"&gt;' . $nothingselected . '&lt;/li&gt;&lt;/ul&gt;';</td></tr><tr><th id="L409"><a href="#L409">409</a></th><td>  $output .= '&lt;/div&gt;';</td></tr><tr><th id="L410"><a href="#L410">410</a></th><td></td></tr><tr><th id="L411"><a href="#L411">411</a></th><td>  return $output;</td></tr><tr><th id="L412"><a href="#L412">412</a></th><td>}</td></tr><tr><th id="L413"><a href="#L413">413</a></th><td></td></tr><tr><th id="L414"><a href="#L414">414</a></th><td>/**</td></tr><tr><th id="L415"><a href="#L415">415</a></th><td> * Validates the entity reference tree widgets.</td></tr><tr><th id="L416"><a href="#L416">416</a></th><td> *</td></tr><tr><th id="L417"><a href="#L417">417</a></th><td> * This function sets the value of the tree widgets into a form that Drupal</td></tr><tr><th id="L418"><a href="#L418">418</a></th><td> * can understand, and also checks if the field is required and has been</td></tr><tr><th id="L419"><a href="#L419">419</a></th><td> * left empty.</td></tr><tr><th id="L420"><a href="#L420">420</a></th><td> *</td></tr><tr><th id="L421"><a href="#L421">421</a></th><td> * @param $element</td></tr><tr><th id="L422"><a href="#L422">422</a></th><td> *   The element to be validated.</td></tr><tr><th id="L423"><a href="#L423">423</a></th><td> * @param $form_state</td></tr><tr><th id="L424"><a href="#L424">424</a></th><td> *   The state of the form.</td></tr><tr><th id="L425"><a href="#L425">425</a></th><td> *</td></tr><tr><th id="L426"><a href="#L426">426</a></th><td> * @return</td></tr><tr><th id="L427"><a href="#L427">427</a></th><td> *   The validated element.</td></tr><tr><th id="L428"><a href="#L428">428</a></th><td> */</td></tr><tr><th id="L429"><a href="#L429">429</a></th><td>function _entity_reference_tree_widget_validate(&amp;$element, &amp;$form_state) {</td></tr><tr><th id="L430"><a href="#L430">430</a></th><td>  $items = _entity_reference_tree_flatten($element, $form_state);</td></tr><tr><th id="L431"><a href="#L431">431</a></th><td>  $value = array();</td></tr><tr><th id="L432"><a href="#L432">432</a></th><td></td></tr><tr><th id="L433"><a href="#L433">433</a></th><td>  if ($element['#max_choices'] != 1) {</td></tr><tr><th id="L434"><a href="#L434">434</a></th><td>    foreach ($items as $child) {</td></tr><tr><th id="L435"><a href="#L435">435</a></th><td>      if (!empty($child['#value'])) {</td></tr><tr><th id="L436"><a href="#L436">436</a></th><td>        array_push($value, array($element['#value_key'] =&gt; $child['#value']));</td></tr><tr><th id="L437"><a href="#L437">437</a></th><td></td></tr><tr><th id="L438"><a href="#L438">438</a></th><td>        // If the element is leaves only and select parents is on, then automatically</td></tr><tr><th id="L439"><a href="#L439">439</a></th><td>        // add all the parents of each selected value.</td></tr><tr><th id="L440"><a href="#L440">440</a></th><td>        if ($element['#select_parents'] &amp;&amp; $element['#leaves_only']) {</td></tr><tr><th id="L441"><a href="#L441">441</a></th><td>          foreach ($child['#parent_values'] as $parent_id) {</td></tr><tr><th id="L442"><a href="#L442">442</a></th><td>            if (!in_array(array($element['#value_key'] =&gt; $parent_id), $value)) {</td></tr><tr><th id="L443"><a href="#L443">443</a></th><td>              array_push($value, array($element['#value_key'] =&gt; $parent_id));</td></tr><tr><th id="L444"><a href="#L444">444</a></th><td>            }</td></tr><tr><th id="L445"><a href="#L445">445</a></th><td>          }</td></tr><tr><th id="L446"><a href="#L446">446</a></th><td>        }</td></tr><tr><th id="L447"><a href="#L447">447</a></th><td>      }</td></tr><tr><th id="L448"><a href="#L448">448</a></th><td>    }</td></tr><tr><th id="L449"><a href="#L449">449</a></th><td>  }</td></tr><tr><th id="L450"><a href="#L450">450</a></th><td>  else {</td></tr><tr><th id="L451"><a href="#L451">451</a></th><td>    // If it's a tree of radio buttons, they all have the same value, so we can just</td></tr><tr><th id="L452"><a href="#L452">452</a></th><td>    // grab the value of the first one.</td></tr><tr><th id="L453"><a href="#L453">453</a></th><td>    if (count($items) &gt; 0) {</td></tr><tr><th id="L454"><a href="#L454">454</a></th><td>      $child = reset($items);</td></tr><tr><th id="L455"><a href="#L455">455</a></th><td>      if (!empty($child['#value'])) {</td></tr><tr><th id="L456"><a href="#L456">456</a></th><td>        array_push($value, array($element['#value_key'] =&gt; $child['#value']));</td></tr><tr><th id="L457"><a href="#L457">457</a></th><td>      }</td></tr><tr><th id="L458"><a href="#L458">458</a></th><td>    }</td></tr><tr><th id="L459"><a href="#L459">459</a></th><td>  }</td></tr><tr><th id="L460"><a href="#L460">460</a></th><td></td></tr><tr><th id="L461"><a href="#L461">461</a></th><td>  if ($element['#required'] &amp;&amp; empty($value)) {</td></tr><tr><th id="L462"><a href="#L462">462</a></th><td>    // The title is already check_plained so it's appropriate to use !.</td></tr><tr><th id="L463"><a href="#L463">463</a></th><td>    form_error($element, t('!name field is required.', array('!name' =&gt; $element['#title'])));</td></tr><tr><th id="L464"><a href="#L464">464</a></th><td>  }</td></tr><tr><th id="L465"><a href="#L465">465</a></th><td></td></tr><tr><th id="L466"><a href="#L466">466</a></th><td>  form_set_value($element, $value, $form_state);</td></tr><tr><th id="L467"><a href="#L467">467</a></th><td>  return $element;</td></tr><tr><th id="L468"><a href="#L468">468</a></th><td>}</td></tr><tr><th id="L469"><a href="#L469">469</a></th><td></td></tr><tr><th id="L470"><a href="#L470">470</a></th><td>/**</td></tr><tr><th id="L471"><a href="#L471">471</a></th><td> * Returns an array of allowed values defined by the given view.</td></tr><tr><th id="L472"><a href="#L472">472</a></th><td> *</td></tr><tr><th id="L473"><a href="#L473">473</a></th><td> * @param $filter</td></tr><tr><th id="L474"><a href="#L474">474</a></th><td> *   A view, in the format VIEWNAME:DISPLAYNAME</td></tr><tr><th id="L475"><a href="#L475">475</a></th><td> *</td></tr><tr><th id="L476"><a href="#L476">476</a></th><td> * @return</td></tr><tr><th id="L477"><a href="#L477">477</a></th><td> *   An array of entity IDs ({id} =&gt; true) returned by the view.</td></tr><tr><th id="L478"><a href="#L478">478</a></th><td> */</td></tr><tr><th id="L479"><a href="#L479">479</a></th><td>function _entity_reference_tree_get_allowed_values($element) {</td></tr><tr><th id="L480"><a href="#L480">480</a></th><td>  $filter = $element['#filter_view'];</td></tr><tr><th id="L481"><a href="#L481">481</a></th><td>  $arg_type = $element['#filter_view_arg_type'];</td></tr><tr><th id="L482"><a href="#L482">482</a></th><td>  $arg_value = $element['#filter_view_arg_key'];</td></tr><tr><th id="L483"><a href="#L483">483</a></th><td>  $entity_info = entity_get_info($element['#target_entity']);</td></tr><tr><th id="L484"><a href="#L484">484</a></th><td>  $id = $entity_info['entity keys']['id'];</td></tr><tr><th id="L485"><a href="#L485">485</a></th><td>  $viewname = "";</td></tr><tr><th id="L486"><a href="#L486">486</a></th><td>  $displayname = "";</td></tr><tr><th id="L487"><a href="#L487">487</a></th><td>  $args = "";</td></tr><tr><th id="L488"><a href="#L488">488</a></th><td>  $allowed = array();</td></tr><tr><th id="L489"><a href="#L489">489</a></th><td>  $viewname = "";</td></tr><tr><th id="L490"><a href="#L490">490</a></th><td>  $displayname = "";</td></tr><tr><th id="L491"><a href="#L491">491</a></th><td></td></tr><tr><th id="L492"><a href="#L492">492</a></th><td>  // Get the arguments for the view</td></tr><tr><th id="L493"><a href="#L493">493</a></th><td>  if ($arg_type == 1 &amp;&amp; is_numeric($arg_value)) $args = arg($arg_value);</td></tr><tr><th id="L494"><a href="#L494">494</a></th><td>  if ($arg_type == 2 &amp;&amp; $arg_value&lt;&gt;'' &amp;&amp; isset($_REQUEST[$arg_value])) {</td></tr><tr><th id="L495"><a href="#L495">495</a></th><td>    if (is_array($_REQUEST[$arg_value])) {</td></tr><tr><th id="L496"><a href="#L496">496</a></th><td>      foreach ($_REQUEST[$arg_value] as $k =&gt; $arg) {</td></tr><tr><th id="L497"><a href="#L497">497</a></th><td>        $args .= $arg;</td></tr><tr><th id="L498"><a href="#L498">498</a></th><td>        if ($k &lt; count($arg)-1) $args .= ',';</td></tr><tr><th id="L499"><a href="#L499">499</a></th><td>      }</td></tr><tr><th id="L500"><a href="#L500">500</a></th><td>    }</td></tr><tr><th id="L501"><a href="#L501">501</a></th><td>    else {</td></tr><tr><th id="L502"><a href="#L502">502</a></th><td>      $args = $_REQUEST[$arg_value];</td></tr><tr><th id="L503"><a href="#L503">503</a></th><td>    }</td></tr><tr><th id="L504"><a href="#L504">504</a></th><td>  }</td></tr><tr><th id="L505"><a href="#L505">505</a></th><td></td></tr><tr><th id="L506"><a href="#L506">506</a></th><td>  if (module_exists('views') &amp;&amp; $filter != '') {</td></tr><tr><th id="L507"><a href="#L507">507</a></th><td>    list($viewname, $displayname) = explode(":", $filter);</td></tr><tr><th id="L508"><a href="#L508">508</a></th><td>    $view = views_get_view($viewname);</td></tr><tr><th id="L509"><a href="#L509">509</a></th><td>    if (is_object($view)) {</td></tr><tr><th id="L510"><a href="#L510">510</a></th><td>      if ($view-&gt;access($displayname)) {</td></tr><tr><th id="L511"><a href="#L511">511</a></th><td>        // Save the page title first, since execute_display() will reset this to the display title.</td></tr><tr><th id="L512"><a href="#L512">512</a></th><td>        $title = drupal_get_title();</td></tr><tr><th id="L513"><a href="#L513">513</a></th><td>        $view-&gt;execute_display($displayname);</td></tr><tr><th id="L514"><a href="#L514">514</a></th><td>        $title = drupal_set_title($title, PASS_THROUGH);</td></tr><tr><th id="L515"><a href="#L515">515</a></th><td>        foreach ($view-&gt;result as $item) {</td></tr><tr><th id="L516"><a href="#L516">516</a></th><td>          $allowed[$item-&gt;{$id}] = TRUE;</td></tr><tr><th id="L517"><a href="#L517">517</a></th><td>        }</td></tr><tr><th id="L518"><a href="#L518">518</a></th><td>      }</td></tr><tr><th id="L519"><a href="#L519">519</a></th><td>      else {</td></tr><tr><th id="L520"><a href="#L520">520</a></th><td>        drupal_set_message("Cannot access view for entity reference tree widget.", 'warning');</td></tr><tr><th id="L521"><a href="#L521">521</a></th><td>      }</td></tr><tr><th id="L522"><a href="#L522">522</a></th><td>    }</td></tr><tr><th id="L523"><a href="#L523">523</a></th><td>    else {</td></tr><tr><th id="L524"><a href="#L524">524</a></th><td>      drupal_set_message("Entity reference tree: no view named '$viewname'", 'warning');</td></tr><tr><th id="L525"><a href="#L525">525</a></th><td>    }</td></tr><tr><th id="L526"><a href="#L526">526</a></th><td>  }</td></tr><tr><th id="L527"><a href="#L527">527</a></th><td></td></tr><tr><th id="L528"><a href="#L528">528</a></th><td>  return $allowed;</td></tr><tr><th id="L529"><a href="#L529">529</a></th><td>}</td></tr><tr><th id="L530"><a href="#L530">530</a></th><td></td></tr><tr><th id="L531"><a href="#L531">531</a></th><td>/**</td></tr><tr><th id="L532"><a href="#L532">532</a></th><td> * Builds a single item in the entity reference tree widget.</td></tr><tr><th id="L533"><a href="#L533">533</a></th><td> *</td></tr><tr><th id="L534"><a href="#L534">534</a></th><td> * This function returns an element with a checkbox for a single entity.</td></tr><tr><th id="L535"><a href="#L535">535</a></th><td> * If that entity has children, it appends checkbox_tree_level element that</td></tr><tr><th id="L536"><a href="#L536">536</a></th><td> * contains the children.  It is meant to be called recursively when the widget</td></tr><tr><th id="L537"><a href="#L537">537</a></th><td> * is built.</td></tr><tr><th id="L538"><a href="#L538">538</a></th><td> *</td></tr><tr><th id="L539"><a href="#L539">539</a></th><td> * @param $element</td></tr><tr><th id="L540"><a href="#L540">540</a></th><td> *   The main checkbox_tree element.</td></tr><tr><th id="L541"><a href="#L541">541</a></th><td> * @param $entity</td></tr><tr><th id="L542"><a href="#L542">542</a></th><td> *   An entity object.  $entity-&gt;children should be an array of the entity</td></tr><tr><th id="L543"><a href="#L543">543</a></th><td> *   objects that are that entity's children.</td></tr><tr><th id="L544"><a href="#L544">544</a></th><td> * @param $form_state</td></tr><tr><th id="L545"><a href="#L545">545</a></th><td> *   The form state.</td></tr><tr><th id="L546"><a href="#L546">546</a></th><td> * @param $value</td></tr><tr><th id="L547"><a href="#L547">547</a></th><td> *   The value of the element.</td></tr><tr><th id="L548"><a href="#L548">548</a></th><td> * @param $max_choices</td></tr><tr><th id="L549"><a href="#L549">549</a></th><td> *   The maximum number of allowed selections.</td></tr><tr><th id="L550"><a href="#L550">550</a></th><td> *</td></tr><tr><th id="L551"><a href="#L551">551</a></th><td> * @return</td></tr><tr><th id="L552"><a href="#L552">552</a></th><td> *   A completed checkbox_tree_item element, which contains a checkbox and</td></tr><tr><th id="L553"><a href="#L553">553</a></th><td> *   possibly a checkbox_tree_level element as well.</td></tr><tr><th id="L554"><a href="#L554">554</a></th><td> */</td></tr><tr><th id="L555"><a href="#L555">555</a></th><td>function _entity_reference_tree_build_item(&amp;$element, &amp;$entity, $form_state, $value, $max_choices, $parent_ids, $parent, $depth) {</td></tr><tr><th id="L556"><a href="#L556">556</a></th><td>  $entity_info = isset($element['#target_entity']) ? entity_get_info($element['#target_entity']) : NULL;</td></tr><tr><th id="L557"><a href="#L557">557</a></th><td>  $id = isset($entity_info['entity keys']['id']) ? $entity_info['entity keys']['id'] : 'value';</td></tr><tr><th id="L558"><a href="#L558">558</a></th><td>  $start_minimized = FALSE;</td></tr><tr><th id="L559"><a href="#L559">559</a></th><td>  if (array_key_exists('#start_minimized', $element)) {</td></tr><tr><th id="L560"><a href="#L560">560</a></th><td>    $start_minimized = $element['#start_minimized'];</td></tr><tr><th id="L561"><a href="#L561">561</a></th><td>  }</td></tr><tr><th id="L562"><a href="#L562">562</a></th><td></td></tr><tr><th id="L563"><a href="#L563">563</a></th><td>  $leaves_only = FALSE;</td></tr><tr><th id="L564"><a href="#L564">564</a></th><td>  if (array_key_exists('#leaves_only', $element)) {</td></tr><tr><th id="L565"><a href="#L565">565</a></th><td>    $leaves_only = $element['#leaves_only'];</td></tr><tr><th id="L566"><a href="#L566">566</a></th><td>  }</td></tr><tr><th id="L567"><a href="#L567">567</a></th><td></td></tr><tr><th id="L568"><a href="#L568">568</a></th><td>  $entity_name = isset($entity_info['entity keys']['label']) ? $entity-&gt;{$entity_info['entity keys']['label']} : $entity-&gt;title;</td></tr><tr><th id="L569"><a href="#L569">569</a></th><td></td></tr><tr><th id="L570"><a href="#L570">570</a></th><td>  $container = array(</td></tr><tr><th id="L571"><a href="#L571">571</a></th><td>    '#type' =&gt; 'checkbox_tree_item',</td></tr><tr><th id="L572"><a href="#L572">572</a></th><td>    '#max_choices' =&gt; $max_choices,</td></tr><tr><th id="L573"><a href="#L573">573</a></th><td>    '#leaves_only' =&gt; $leaves_only,</td></tr><tr><th id="L574"><a href="#L574">574</a></th><td>    '#entity_name' =&gt; $entity_name,</td></tr><tr><th id="L575"><a href="#L575">575</a></th><td>    '#level_start_minimized' =&gt; FALSE,</td></tr><tr><th id="L576"><a href="#L576">576</a></th><td>    '#depth' =&gt; $depth,</td></tr><tr><th id="L577"><a href="#L577">577</a></th><td>  );</td></tr><tr><th id="L578"><a href="#L578">578</a></th><td></td></tr><tr><th id="L579"><a href="#L579">579</a></th><td>  if (!$element['#leaves_only'] || count($entity-&gt;children) == 0) {</td></tr><tr><th id="L580"><a href="#L580">580</a></th><td>    $name = "edit-" . str_replace('_', '-', isset($element['#field_name']) ? $element['#field_name'] : $element['#title']);</td></tr><tr><th id="L581"><a href="#L581">581</a></th><td>    if (!$element['#allowed_ids'] || in_array($entity-&gt;{$id}, $element['#allowed_ids'])) {</td></tr><tr><th id="L582"><a href="#L582">582</a></th><td>      $e = array(</td></tr><tr><th id="L583"><a href="#L583">583</a></th><td>        '#type' =&gt; ($max_choices == 1) ? 'radio' : 'checkbox',</td></tr><tr><th id="L584"><a href="#L584">584</a></th><td>        '#title' =&gt; $entity_name,</td></tr><tr><th id="L585"><a href="#L585">585</a></th><td>        '#on_value' =&gt; $entity-&gt;{$id},</td></tr><tr><th id="L586"><a href="#L586">586</a></th><td>        '#off_value' =&gt; 0,</td></tr><tr><th id="L587"><a href="#L587">587</a></th><td>        '#return_value' =&gt; $entity-&gt;{$id},</td></tr><tr><th id="L588"><a href="#L588">588</a></th><td>        '#parent_values' =&gt; $parent_ids,</td></tr><tr><th id="L589"><a href="#L589">589</a></th><td>        '#default_value' =&gt; isset($value[$entity-&gt;{$id}]) ? $entity-&gt;{$id} : NULL,</td></tr><tr><th id="L590"><a href="#L590">590</a></th><td>        '#attributes' =&gt; isset($element['#attributes']) ? $element['#attributes'] : NULL,</td></tr><tr><th id="L591"><a href="#L591">591</a></th><td>        '#ajax' =&gt; isset($element['#ajax']) ? $element['#ajax'] : NULL,</td></tr><tr><th id="L592"><a href="#L592">592</a></th><td>      );</td></tr><tr><th id="L593"><a href="#L593">593</a></th><td>    }</td></tr><tr><th id="L594"><a href="#L594">594</a></th><td>    else {</td></tr><tr><th id="L595"><a href="#L595">595</a></th><td>      $e = array(</td></tr><tr><th id="L596"><a href="#L596">596</a></th><td>        '#type' =&gt; 'markup',</td></tr><tr><th id="L597"><a href="#L597">597</a></th><td>        '#suffix' =&gt; $entity_name,</td></tr><tr><th id="L598"><a href="#L598">598</a></th><td>      );</td></tr><tr><th id="L599"><a href="#L599">599</a></th><td>    }</td></tr><tr><th id="L600"><a href="#L600">600</a></th><td>    if (isset($element['#token_display']) &amp;&amp; $element['#token_display'] != '' &amp;&amp; module_exists('token')) {</td></tr><tr><th id="L601"><a href="#L601">601</a></th><td>      $ent = entity_load($entity-&gt;type, $entity-&gt;{$id});</td></tr><tr><th id="L602"><a href="#L602">602</a></th><td>      $e['#title'] = token_replace($element['#token_display'], array('entity' =&gt; $ent), array('clear' =&gt; TRUE));</td></tr><tr><th id="L603"><a href="#L603">603</a></th><td>    }</td></tr><tr><th id="L604"><a href="#L604">604</a></th><td></td></tr><tr><th id="L605"><a href="#L605">605</a></th><td>    if ($e['#type'] == 'radio') {</td></tr><tr><th id="L606"><a href="#L606">606</a></th><td>      $parents_for_id = array_merge($element['#parents'], array($entity-&gt;{$id}));</td></tr><tr><th id="L607"><a href="#L607">607</a></th><td>      $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));</td></tr><tr><th id="L608"><a href="#L608">608</a></th><td>      $e['#parents'] = $element['#parents'];</td></tr><tr><th id="L609"><a href="#L609">609</a></th><td>    }</td></tr><tr><th id="L610"><a href="#L610">610</a></th><td>  }</td></tr><tr><th id="L611"><a href="#L611">611</a></th><td>  else {</td></tr><tr><th id="L612"><a href="#L612">612</a></th><td>    $e = array(</td></tr><tr><th id="L613"><a href="#L613">613</a></th><td>      '#type' =&gt; 'checkbox_tree_label',</td></tr><tr><th id="L614"><a href="#L614">614</a></th><td>      '#value' =&gt; $entity-&gt;name,</td></tr><tr><th id="L615"><a href="#L615">615</a></th><td>    );</td></tr><tr><th id="L616"><a href="#L616">616</a></th><td>  }</td></tr><tr><th id="L617"><a href="#L617">617</a></th><td></td></tr><tr><th id="L618"><a href="#L618">618</a></th><td>  $container[$entity-&gt;{$id}] = $e;</td></tr><tr><th id="L619"><a href="#L619">619</a></th><td></td></tr><tr><th id="L620"><a href="#L620">620</a></th><td>  if (($depth + 1 &lt;= $element['#max_depth'] || !$element['#max_depth']) &amp;&amp; property_exists($entity, 'children') &amp;&amp; count($entity-&gt;children) &gt; 0) {</td></tr><tr><th id="L621"><a href="#L621">621</a></th><td>    $parents = $parent_ids;</td></tr><tr><th id="L622"><a href="#L622">622</a></th><td>    $parents[] = $entity-&gt;{$id};</td></tr><tr><th id="L623"><a href="#L623">623</a></th><td>    $container[$entity-&gt;{$id} . '-children'] = _entity_reference_tree_build_level($element, $entity, $form_state, $value, $max_choices, $parents, $depth+1);</td></tr><tr><th id="L624"><a href="#L624">624</a></th><td>    $container['#level_start_minimized'] = $container[$entity-&gt;{$id} . '-children']['#level_start_minimized'];</td></tr><tr><th id="L625"><a href="#L625">625</a></th><td>  }</td></tr><tr><th id="L626"><a href="#L626">626</a></th><td></td></tr><tr><th id="L627"><a href="#L627">627</a></th><td>  return $container;</td></tr><tr><th id="L628"><a href="#L628">628</a></th><td>}</td></tr><tr><th id="L629"><a href="#L629">629</a></th><td></td></tr><tr><th id="L630"><a href="#L630">630</a></th><td>/**</td></tr><tr><th id="L631"><a href="#L631">631</a></th><td> * Builds a level in the entity reference tree widget.</td></tr><tr><th id="L632"><a href="#L632">632</a></th><td> *</td></tr><tr><th id="L633"><a href="#L633">633</a></th><td> * This function returns an element that has a number of checkbox_tree_item elements</td></tr><tr><th id="L634"><a href="#L634">634</a></th><td> * as children.  It is meant to be called recursively when the widget is built.</td></tr><tr><th id="L635"><a href="#L635">635</a></th><td> *</td></tr><tr><th id="L636"><a href="#L636">636</a></th><td> * @param $element</td></tr><tr><th id="L637"><a href="#L637">637</a></th><td> *   The main checkbox_tree element.</td></tr><tr><th id="L638"><a href="#L638">638</a></th><td> * @param $entity</td></tr><tr><th id="L639"><a href="#L639">639</a></th><td> *   An entity object.  $entity-&gt;children should be an array of the entity</td></tr><tr><th id="L640"><a href="#L640">640</a></th><td> *   objects that are that entity's children.</td></tr><tr><th id="L641"><a href="#L641">641</a></th><td> * @param $form_state</td></tr><tr><th id="L642"><a href="#L642">642</a></th><td> *   The form state.</td></tr><tr><th id="L643"><a href="#L643">643</a></th><td> * @param $value</td></tr><tr><th id="L644"><a href="#L644">644</a></th><td> *   The value of the element.</td></tr><tr><th id="L645"><a href="#L645">645</a></th><td> * @param $max_choices</td></tr><tr><th id="L646"><a href="#L646">646</a></th><td> *   The maximum number of allowed selections.</td></tr><tr><th id="L647"><a href="#L647">647</a></th><td> *</td></tr><tr><th id="L648"><a href="#L648">648</a></th><td> * @return</td></tr><tr><th id="L649"><a href="#L649">649</a></th><td> *   A completed checkbox_tree_level element.</td></tr><tr><th id="L650"><a href="#L650">650</a></th><td> */</td></tr><tr><th id="L651"><a href="#L651">651</a></th><td>function _entity_reference_tree_build_level($element, $entity, $form_state, $value, $max_choices, $parent_ids, $depth) {</td></tr><tr><th id="L652"><a href="#L652">652</a></th><td>  $entity_info = isset($element['#target_entity']) ? entity_get_info($element['#target_entity']) : NULL;</td></tr><tr><th id="L653"><a href="#L653">653</a></th><td>  $start_minimized = FALSE;</td></tr><tr><th id="L654"><a href="#L654">654</a></th><td>  if (array_key_exists('#start_minimized', $element)) {</td></tr><tr><th id="L655"><a href="#L655">655</a></th><td>    $start_minimized = $element['#start_minimized'];</td></tr><tr><th id="L656"><a href="#L656">656</a></th><td>  }</td></tr><tr><th id="L657"><a href="#L657">657</a></th><td></td></tr><tr><th id="L658"><a href="#L658">658</a></th><td>  $leaves_only = FALSE;</td></tr><tr><th id="L659"><a href="#L659">659</a></th><td>  if (array_key_exists('#leaves_only', $element)) {</td></tr><tr><th id="L660"><a href="#L660">660</a></th><td>    $leaves_only = $element['#leaves_only'];</td></tr><tr><th id="L661"><a href="#L661">661</a></th><td>  }</td></tr><tr><th id="L662"><a href="#L662">662</a></th><td></td></tr><tr><th id="L663"><a href="#L663">663</a></th><td>  $container = array(</td></tr><tr><th id="L664"><a href="#L664">664</a></th><td>    '#type' =&gt; 'checkbox_tree_level',</td></tr><tr><th id="L665"><a href="#L665">665</a></th><td>    '#max_choices' =&gt; $max_choices,</td></tr><tr><th id="L666"><a href="#L666">666</a></th><td>    '#leaves_only' =&gt; $leaves_only,</td></tr><tr><th id="L667"><a href="#L667">667</a></th><td>    '#start_minimized' =&gt; $start_minimized,</td></tr><tr><th id="L668"><a href="#L668">668</a></th><td>    '#depth' =&gt; $depth,</td></tr><tr><th id="L669"><a href="#L669">669</a></th><td>  );</td></tr><tr><th id="L670"><a href="#L670">670</a></th><td></td></tr><tr><th id="L671"><a href="#L671">671</a></th><td>  $container['#level_start_minimized'] = isset($entity-&gt;children_selected) ? $depth &gt; 1 &amp;&amp; $element['#start_minimized'] &amp;&amp; !($entity-&gt;children_selected) : $depth &gt; 1 &amp;&amp; $element['#start_minimized'];</td></tr><tr><th id="L672"><a href="#L672">672</a></th><td></td></tr><tr><th id="L673"><a href="#L673">673</a></th><td>  foreach ($entity-&gt;children as $key =&gt; $child) {</td></tr><tr><th id="L674"><a href="#L674">674</a></th><td>    if ($entity_info) {</td></tr><tr><th id="L675"><a href="#L675">675</a></th><td>      $container[$child-&gt;{$entity_info['entity keys']['id']}] = _entity_reference_tree_build_item($element, $child, $form_state, $value, $max_choices, $parent_ids, $container, $depth);</td></tr><tr><th id="L676"><a href="#L676">676</a></th><td>    }</td></tr><tr><th id="L677"><a href="#L677">677</a></th><td>    else {</td></tr><tr><th id="L678"><a href="#L678">678</a></th><td>      $container[$key] = _entity_reference_tree_build_item($element, $child, $form_state, $value, $max_choices, $parent_ids, $container, $depth);</td></tr><tr><th id="L679"><a href="#L679">679</a></th><td>    }</td></tr><tr><th id="L680"><a href="#L680">680</a></th><td>  }</td></tr><tr><th id="L681"><a href="#L681">681</a></th><td></td></tr><tr><th id="L682"><a href="#L682">682</a></th><td>  return $container;</td></tr><tr><th id="L683"><a href="#L683">683</a></th><td>}</td></tr></tbody></table>
+
+      </div>
+      <div id="help"><strong>Note :</strong> consultez <a href="/hug/intranet-tma/trac/wiki/TracBrowser">TracBrowser</a> pour obtenir de l'aide sur l'utilisation de l'explorateur de sources.</div>
+      <div id="anydiff">
+        <form action="/hug/intranet-tma/trac/diff" method="get">
+          <div class="buttons">
+            <input type="hidden" name="new_path" value="/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc" />
+            <input type="hidden" name="old_path" value="/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc" />
+            <input type="hidden" name="new_rev" />
+            <input type="hidden" name="old_rev" />
+            <input type="submit" value="Voir les différences ..." title="Sélection des chemins et des révisions pour les différences" />
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="altlinks">
+      <h3>Télécharger en d'autres formats :</h3>
+      <ul>
+        <li class="last first">
+          <a rel="nofollow" href="/hug/intranet-tma/trac/export/2519/webfactory/trunk/sites/all/modules/custom/entity_reference_tree/entity_reference_tree.widget.inc">Format original</a>
+        </li>
+      </ul>
+    </div>
+    </div>
+    <div id="footer" lang="en" xml:lang="en"><hr />
+      <a id="tracpowered" href="http://trac.edgewall.org/"><img src="/hug/intranet-tma/trac/chrome/common/trac_logo_mini.png" height="30" width="107" alt="Trac Powered" /></a>
+      <p class="left">Animé par <a href="/hug/intranet-tma/trac/about"><strong>Trac 0.12.3</strong></a><br />
+        produit par <a href="http://www.edgewall.org/">Edgewall Software</a>.</p>
+      <p class="right">En savoir plus sur le projet Trac :<br /> <a href="http://trac.edgewall.org/">http://trac.edgewall.org/</a></p>
+    </div>
+  </body>
+</html>
