@@ -1,7 +1,9 @@
 <?php
 
-//module_load_include('inc', 'group_reference_tree', 'group_reference_tree.field');
-//module_load_include('inc', 'group_reference_tree', 'group_reference_tree.widget');
+/**
+ * @file
+ * Provides field entity_reference tree hooks for group reference tree.
+ */
 
 /**
  * Implements hook_get_entity_hierarchy().
@@ -15,14 +17,14 @@ function group_reference_tree_get_entity_hierarchy($element, $allowed_ids, $labe
 /**
  * This function returns a hierarchy of groups memberships in a nested array.
  *
- * @param $parent_id
+ * @param int $parent_id
  *   The ID of the root of the Group membership hierarchy.
- * @param $entity_type
+ * @param int $entity_type
  *   The entity type to restrict the child search.
- * @param $bundle_names
+ * @param string $bundle_names
  *   The bundle names to restrict the child search.
  *
- * @return
+ * @return array
  *   A nested array of the group's membership child objects.
  */
 function _group_reference_tree_get_group_hierarchy($parent_id, $entity_type, $bundle_names, &$allowed, $filter, $label, $default = array()) {
@@ -69,24 +71,25 @@ function _group_reference_tree_get_group_hierarchy($parent_id, $entity_type, $bu
 }
 
 /**
- * This function is like taxonomy_get_children, except it doesn't load the entire group.
+ * This function is like taxonomy_get_children,
+ * except it doesn't load the entire group.
  *
- * @param $parent_id
+ * @param int $parent_id
  *   The ID of the group whose children you want to get.
- * @param $entity_type
+ * @param int $entity_type
  *   The entity type.
- * @param $bundle_names
+ * @param string $bundle_names
  *   The bundle names.
  *
- * @return
- *   An array of groups, each in the form array('id' => $entity_id, 'name' => $name)
+ * @return array
+ *   Array of groups, each in the form array('id'=>$entity_id,'name'=>$name).
  */
 function _group_reference_tree_get_children($parent_id, $entity_type, $bundle_names) {
   $etids = array();
 
   if ($parent_id) {
 
-    // Get all children of the parent id in group Membership table
+    // Get all children of the parent id in group Membership table.
     $query = db_select('group_entity ', 'o');
     $query->fields('o', array('entity_id'));
     $query->addField('g', 'title');
@@ -95,11 +98,14 @@ function _group_reference_tree_get_children($parent_id, $entity_type, $bundle_na
     $query->condition('o.entity_type', 'group');
     $results = $query->execute();
 
-    // Create a table of entity ids
+    // Create a table of entity ids.
     while ($entity = $results->fetchObject()) {
-      if ($entity->entity_id != $parent_id) $etids[$entity->entity_id] = (object) array('gid' => $entity->entity_id, 'title' => $entity->title);
+      if ($entity->entity_id != $parent_id) {
+        $etids[$entity->entity_id] = (object) array('gid' => $entity->entity_id, 'title' => $entity->title);
+      }
     }
-  } else {
+  }
+  else {
     $query1 = db_select('groups', 'g')->fields('g', array('gid'));
     $query1->join('group_entity', 'o', 'o.entity_id= g.gid');
     $query1->condition('o.entity_type', $entity_type);
@@ -111,17 +117,20 @@ function _group_reference_tree_get_children($parent_id, $entity_type, $bundle_na
     if ($bundle_names) {
       $query->condition('type', $bundle_names, 'IN');
     }
-    $results = $query->notExists($query1)->execute();  
+    $results = $query->notExists($query1)->execute();
 
-    // Create a table of entity ids
+    // Create a table of entity ids.
     while ($entity = $results->fetchObject()) {
       $etids[$entity->gid] = (object) array('gid' => $entity->gid, 'title' => $entity->title);
     }
   }
-  
+
   return ($etids);
 }
 
+/**
+ * Select children.
+ */
 function _group_reference_tree_children_selected($entities, $default, $id) {
   foreach ($entities->children as $entity) {
     if (isset($default[$entity->$id]) || $entity->children_selected) {
@@ -142,10 +151,12 @@ function group_reference_tree_get_entity_parent($element, $parent_id) {
   $query->condition('o.entity_type', $element['#display']['settings']['target_entity']);
   $results = $query->execute();
 
-  // Create a table of entity ids
+  // Create a table of entity ids.
   $etids = array();
   while ($entity = $results->fetchObject()) {
-    if ($entity->gid != $parent_id) $etids[] = $entity->gid;
+    if ($entity->gid != $parent_id) {
+      $etids[] = $entity->gid;
+    }
   }
 
   return $etids;

@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Provides field widget hooks for og reference.
+ */
+
+/**
  * Implements hook_field_widget_info().
  */
 function og_reference_tree_field_widget_info() {
@@ -82,7 +87,7 @@ function og_reference_tree_field_widget_settings_form($field, $instance) {
       '#type' => 'hidden',
       '#value' => $settings['filter_view_arg_type'],
     );
-    
+
     $form['filter_view_arg_key'] = array(
       '#type' => 'hidden',
       '#value' => $settings['filter_view_arg_key'],
@@ -129,7 +134,6 @@ function og_reference_tree_field_widget_settings_form($field, $instance) {
 function og_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $settings = $instance['widget']['settings'];
   $value_key = key($field['columns']);
-  $type = $instance['widget']['type'];
 
   $default_value = array();
   foreach ($items as $item) {
@@ -154,7 +158,10 @@ function og_reference_tree_field_widget_form(&$form, &$form_state, $field, $inst
     case 'og_reference_tree':
       $element['#field'] = 'og_reference_tree';
       $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.js');
-      $element['#attached']['css'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', drupal_get_path('module', 'og_reference_tree') . '/og_reference_tree.css');
+      $element['#attached']['css'] = array(
+        drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
+        drupal_get_path('module', 'og_reference_tree') . '/og_reference_tree.css',
+      );
       $element['#type'] = 'checkbox_tree';
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
       $element['#max_choices'] = $field['cardinality'];

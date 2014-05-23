@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Provides field entity_reference tree hooks for term reference tree.
+ */
+
 module_load_include('inc', 'term_reference_tree', 'term_reference_tree.field');
 module_load_include('inc', 'term_reference_tree', 'term_reference_tree.widget');
 
@@ -15,12 +20,12 @@ function term_reference_tree_get_entity_hierarchy($element, $allowed_ids, $label
 /**
  * This function returns a taxonomy term hierarchy in a nested array.
  *
- * @param $tid
+ * @param int $tid
  *   The ID of the root term.
- * @param $vid
+ * @param int $vid
  *   The vocabulary ID to restrict the child search.
  *
- * @return
+ * @return array
  *   A nested array of the term's child objects.
  */
 function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter, $label, $default = array()) {
@@ -66,15 +71,17 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
 }
 
 /**
- * This function is like taxonomy_get_children, except it doesn't load the entire term.
+ * This function is like taxonomy_get_children, except it
+ * doesn't load the entire term.
  *
- * @param $tid
+ * @param int $tid
  *   The ID of the term whose children you want to get.
- * @param $vid
+ * @param int $vid
  *   The vocabulary ID.
  *
- * @return
- *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
+ * @return array
+ *   An array of taxonomy terms, each in the form
+ *   array('tid' => $tid, 'name' => $name)
  */
 function _term_reference_tree_get_children($tid, $vid) {
   // DO NOT LOAD TAXONOMY TERMS HERE
@@ -103,6 +110,9 @@ function _term_reference_tree_get_children($tid, $vid) {
   return $terms;
 }
 
+/**
+ * Select children.
+ */
 function _term_reference_tree_children_selected($terms, $default) {
   foreach ($terms->children as $term) {
     if (isset($default[$term->tid]) || $term->children_selected) {

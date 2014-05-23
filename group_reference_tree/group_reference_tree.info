@@ -3,5 +3,5 @@ description = An expanding/collapsing tree widget for selecting entities in a gr
 package = Fields
 core = 7.x
 
-#dependencies[] = group
+dependencies[] = group
 dependencies[] = entity_reference_tree

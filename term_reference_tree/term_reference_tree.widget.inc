@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Provides field widget hooks for term reference.
+ */
+
+/**
  * Implements hook_field_widget_info().
  */
 function term_reference_tree_field_widget_info() {
@@ -97,7 +102,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
         '#title' => 'Argument view type',
         '#description' => t("Select the type of argument you want to send to the view"),
         '#default_value' => $settings['filter_view_arg_type'],
-        '#options' => array(), //$options_args,
+        '#options' => array(),
       );
       $form['filter_view_arg_key'] = array(
         '#type' => 'textfield',
@@ -179,7 +184,6 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $settings = $instance['widget']['settings'];
   $vocabulary = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
   $value_key = key($field['columns']);
-  $type = $instance['widget']['type'];
 
   $default_value = array();
   foreach ($items as $item) {
@@ -199,7 +203,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
     $element['#value'] = array();
   }
 
-  // A switch statement, in case we ever add more widgets to this module.
+  // In case we ever add more widgets to this module.
   switch ($instance['widget']['type']) {
     case 'term_reference_tree':
       $element['#field'] = 'term_reference_tree';

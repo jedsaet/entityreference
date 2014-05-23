@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * @file
+ * Entity reference tree module provides widget and formatters to
+ * different entity field tree structures.
+ */
+
 module_load_include('inc', 'entity_reference_tree', 'entity_reference_tree.widget');
 
 /**
@@ -65,8 +71,7 @@ function entity_reference_tree_theme() {
 }
 
 /**
- * Recursively go through the option tree and return a flat array of
- * options
+ * Recursively go through the option tree and return a flat array of options.
  */
 function _entity_reference_tree_flatten($element, &$form_state) {
   $output = array();
@@ -88,15 +93,15 @@ function _entity_reference_tree_flatten($element, &$form_state) {
  *
  * This function converts a list of entities to a key/value list of options.
  *
- * @param $entities
+ * @param array $entities
  *   An array of entities IDs.
- * @param $allowed
+ * @param array $allowed
  *   An array containing the entities allowed by the filter view
- * @param $filter
+ * @param string $filter
  *   A string defining the view to filter by (only used to detect whether view
  *   filtering is enabled
  *
- * @return
+ * @return array
  *   A key/value array of entities (name => id)
  */
 function _entity_reference_tree_get_options(&$entities, &$allowed, $filter, $id, $name) {

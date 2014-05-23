@@ -1,15 +1,20 @@
 <?php
 
 /**
+ * @file
+ * Provides field widget hooks for entity reference.
+ */
+
+/**
  * Implements hook_field_widget_info().
  */
 function entityreference_tree_field_widget_info() {
   return array(
-    'entityreference_tree' => array (
+    'entityreference_tree' => array(
       'label' => 'Entity reference tree',
       'field types' => array('entityreference'),
       'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_CUSTOM, 
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
         'default value' => FIELD_BEHAVIOR_DEFAULT,
       ),
       'settings' => array(
@@ -37,7 +42,7 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
   $widget = $instance['widget'];
   $settings = $widget['settings'];
   $form = array();
-  
+
   if ($widget['type'] == 'entityreference_tree') {
     $form['start_minimized'] = array(
       '#type' => 'checkbox',
@@ -46,7 +51,7 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['start_minimized'],
       '#return_value' => 1,
     );
-    
+
     $form['leaves_only'] = array(
       '#type' => 'checkbox',
       '#title' => t('Leaves only'),
@@ -82,7 +87,7 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
       '#type' => 'hidden',
       '#value' => $settings['filter_view_arg_type'],
     );
-    
+
     $form['filter_view_arg_key'] = array(
       '#type' => 'hidden',
       '#value' => $settings['filter_view_arg_key'],
@@ -100,7 +105,7 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['track_list'],
       '#return_value' => 1,
     );
-    
+
     $form['max_depth'] = array(
       '#type' => 'textfield',
       '#title' => t('Maximum Depth'),
@@ -108,8 +113,8 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['max_depth'],
       '#size' => 2,
       '#return_value' => 1,
-    );    
-    
+    );
+
     $form['parent_id'] = array(
       '#type' => 'textfield',
       '#title' => t('Parent Entity IDs'),
@@ -117,7 +122,7 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['parent_id'],
       '#size' => 8,
       '#return_value' => 1,
-    );    
+    );
   }
 
   return $form;
@@ -129,8 +134,7 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
 function entityreference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $settings = $instance['widget']['settings'];
   $value_key = key($field['columns']);
-  $type = $instance['widget']['type'];
-  
+
   $default_value = array();
   foreach ($items as $item) {
     $key = $item[$value_key];
@@ -148,14 +152,17 @@ function entityreference_tree_field_widget_form(&$form, &$form_state, $field, $i
   if (!array_key_exists('#value', $element)) {
     $element['#value'] = array();
   }
-  
+
   // A switch statement, in case we ever add more widgets to this module.
   switch ($instance['widget']['type']) {
     case 'entityreference_tree':
       $element['#field'] = 'entityreference_tree';
       $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.js');
-      $element['#attached']['css'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css');
-      $element['#type'] = 'checkbox_tree';   
+      $element['#attached']['css'] = array(
+        drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
+        drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css',
+      );
+      $element['#type'] = 'checkbox_tree';
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
       $element['#max_choices'] = $field['cardinality'];
       $element['#max_depth'] = $settings['max_depth'];
@@ -175,7 +182,7 @@ function entityreference_tree_field_widget_form(&$form, &$form_state, $field, $i
       $element['#target_entity'] = $field['settings']['target_type'];
       break;
   }
-  
+
   $element += array(
     '#value_key' => $value_key,
     '#element_validate' => array('_entity_reference_tree_widget_validate'),

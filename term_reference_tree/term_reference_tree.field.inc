@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Configure an term reference field output format.
+ */
+
+/**
  * Implements hook_field_formatter_info().
  */
 function term_reference_tree_field_formatter_info() {
@@ -85,7 +90,7 @@ function term_reference_tree_field_formatter_settings_summary($field, $instance,
   $summary = '';
 
   if ($display['type'] == 'term_reference_tree') {
-    $summary = t('Uses tokens: ') . ($settings['token_display_selected'] != '' ? t('Yes') : t('No'));
+    $summary = t('Uses tokens:') . ' ' . ($settings['token_display_selected'] != '' ? t('Yes') : t('No'));
   }
 
   return $summary;

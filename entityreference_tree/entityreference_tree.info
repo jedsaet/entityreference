@@ -1,6 +1,6 @@
-name = Entity Reference Tree
+name = EntityReference Tree
 description = An expanding/collapsing tree widget for selecting entities in a entity reference field
-package = Other
+package = Fields
 core = 7.x
 
 dependencies[] = entityreference
