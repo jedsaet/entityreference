@@ -40,8 +40,8 @@ function og_reference_tree_field_formatter_view($entity_type, $entity, $field, $
           '#attached' => array(
             'css' => array(
               drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
-              drupal_get_path('module', 'og_reference_tree') . '/og_reference_tree.css'
-            )
+              drupal_get_path('module', 'og_reference_tree') . '/og_reference_tree.css',
+            ),
           ),
         );
       }

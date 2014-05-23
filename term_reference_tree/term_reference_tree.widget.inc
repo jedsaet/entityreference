@@ -208,7 +208,10 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
     case 'term_reference_tree':
       $element['#field'] = 'term_reference_tree';
       $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.js');
-      $element['#attached']['css'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css', drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css');
+      $element['#attached']['css'] = array(
+        drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
+        drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css'
+      );
       $element['#type'] = 'checkbox_tree';
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
       $element['#max_choices'] = $field['cardinality'];

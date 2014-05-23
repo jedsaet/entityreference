@@ -90,8 +90,8 @@ function _entity_reference_tree_output_list_level(&$element, &$tree) {
  */
 function _entity_reference_tree_select_parents_validate($element, &$form_state) {
   if ($form_state['values']['instance']['widget']['settings']['select_parents'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
-    // This is pretty wonky syntax for the field name in form_set_error, but it's
-    // correct.
+    // This is pretty wonky syntax for the field name
+    // in form_set_error, but it's correct.
     form_set_error('field][cardinality', t('You must select an Unlimited number of values if Select Parents Automatically is enabled.'));
   }
 }
@@ -101,8 +101,8 @@ function _entity_reference_tree_select_parents_validate($element, &$form_state) 
  */
 function _entity_reference_tree_cascading_selection_validate($element, &$form_state) {
   if ($form_state['values']['instance']['widget']['settings']['cascading_selection'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
-    // This is pretty wonky syntax for the field name in form_set_error, but it's
-    // correct.
+    // This is pretty wonky syntax for the field name
+    // in form_set_error, but it's correct.
     form_set_error('field][cardinality', t('You must select an Unlimited number of values if Cascading selection is enabled.'));
   }
 }
@@ -239,13 +239,14 @@ function entity_reference_tree_prepare_object(&$element) {
 /**
  * Transform an array into an object.
  *
- * @param $array
+ * @param array $array
+ *   The array that has to be converted into an object.
  *
- * @return
+ * @return object
  *   The converted object.
  */
 function entity_reference_tree_array_to_object($array) {
-  $result_obj = new \stdClass;
+  $result_obj = new stdClass();
   $result_arr = array();
   $has_int_keys = FALSE;
   $has_str_keys = FALSE;
@@ -263,7 +264,8 @@ function entity_reference_tree_array_to_object($array) {
     }
     if ($has_str_keys) {
       $result_obj->{$k} = is_array($v) ? entity_reference_tree_array_to_object($v) : $v;
-    } else {
+    }
+    else {
       $result_arr[$k] = is_array($v) ? entity_reference_tree_array_to_object($v) : $v;
     }
   }
@@ -391,12 +393,14 @@ function theme_checkbox_tree_label($variables) {
  *   Variables available for theming.
  */
 function theme_checkbox_tree_track_list($variables) {
-  // Should the label be singular or plural? Depends on cardinality of entity field.
+  // Should the label be singular or plural?
+  // Depends on cardinality of entity field.
   static $nothingselected;
 
   if (!$nothingselected) {
     $nothingselected = t('[Nothing selected]');
-    // Add the "Nothing selected" text. To style it, replace it with whatever you want.
+    // Add the "Nothing selected" text.
+    // To style it, replace it with whatever you want.
     // Could do this with a file instead.
     drupal_add_js(
       'var entityReferenceTreeNothingSelectedText = "' . $nothingselected . '";',
@@ -441,8 +445,8 @@ function _entity_reference_tree_widget_validate(&$element, &$form_state) {
       if (!empty($child['#value'])) {
         array_push($value, array($element['#value_key'] => $child['#value']));
 
-        // If the element is leaves only and select parents is on, then automatically
-        // add all the parents of each selected value.
+        // If the element is leaves only and select parents is on,
+        // then automatically add all the parents of each selected value.
         if ($element['#select_parents'] && $element['#leaves_only']) {
           foreach ($child['#parent_values'] as $parent_id) {
             if (!in_array(array($element['#value_key'] => $parent_id), $value)) {
@@ -454,8 +458,8 @@ function _entity_reference_tree_widget_validate(&$element, &$form_state) {
     }
   }
   else {
-    // If it's a tree of radio buttons, they all have the same value, so we can just
-    // grab the value of the first one.
+    // If it's a tree of radio buttons, they all have the same value,
+    // so we can just grab the value of the first one.
     if (count($items) > 0) {
       $child = reset($items);
       if (!empty($child['#value'])) {
@@ -503,7 +507,9 @@ function _entity_reference_tree_get_allowed_values($element) {
     if (is_array($_REQUEST[$arg_value])) {
       foreach ($_REQUEST[$arg_value] as $k => $arg) {
         $args .= $arg;
-        if ($k < count($arg) - 1) $args .= ',';
+        if ($k < count($arg) - 1) {
+          $args .= ',';
+        }
       }
     }
     else {

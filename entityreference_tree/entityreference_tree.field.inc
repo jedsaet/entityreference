@@ -41,7 +41,7 @@ function entityreference_tree_field_formatter_view($entity_type, $entity, $field
             'css' => array(
               drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
               drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css',
-            )
+            ),
           ),
         );
       }

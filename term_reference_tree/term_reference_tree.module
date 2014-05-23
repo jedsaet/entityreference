@@ -71,8 +71,9 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
 }
 
 /**
- * This function is like taxonomy_get_children, except it
- * doesn't load the entire term.
+ * This function is like taxonomy_get_children.
+ *
+ * Except it doesn't load the entire term.
  *
  * @param int $tid
  *   The ID of the term whose children you want to get.

@@ -18,7 +18,6 @@ Drupal.behaviors.entityReferenceTree = {
     });
     */
 
-
     $('.entity-reference-tree', context).once('entity-reference-tree', function() {
       // On page load, check whether the maximum number of choices is already selected.
       // If so, disable the other options.
@@ -57,7 +56,7 @@ Drupal.behaviors.entityReferenceTree = {
             // checkbox or radio.
             input_type
           );
-        }); //End labels.each
+        });
 
         //Show "nothing selected" message, if needed.
         showNothingSelectedMessage(track_list_container);
@@ -111,8 +110,8 @@ Drupal.behaviors.entityReferenceTree = {
 
           //Show "nothing selected" message, if needed.
           showNothingSelectedMessage(track_list_container);
-        }); //End process checkbox changes.
-      } //End Want a track list.
+        });
+      }
 
       //On page load, check if the user wants a cascading selection.
       if($(this).hasClass('entity-reference-tree-cascading-selection')) {
@@ -224,21 +223,21 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
  * @param track_list_container Where the message is to be shown.
  */
 function showNothingSelectedMessage(track_list_container) {
-  //Is the message there already?
+  // Is the message there already?
   var message_showing = (track_list_container.find('.entity_ref_tree_nothing_message').size() != 0);
 
-  //Number of real items showing.
+  // Number of real items showing.
   var num_real_items_showing = message_showing ? track_list_container.find('li').size() - 1 : track_list_container.find('li').size();
   if (num_real_items_showing == 0) {
-    //No items showing, so show the message.
+    // No items showing, so show the message.
     if (! message_showing) {
       track_list_container.append(
           '<li class="entity_ref_tree_nothing_message">' + entityReferenceTreeNothingSelectedText + '</li>'
       );
     }
   }
-  else { // !(num_real_items_showing == 0)
-    //There are real items.
+  else {
+    // There are real items.
     if (message_showing) {
       track_list_container.find('.entity_ref_tree_nothing_message').remove();
     }

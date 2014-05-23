@@ -1,4 +1,5 @@
-.entity-reference-tree-button, .no-entity-reference-tree-button {
+.entity-reference-tree-button,
+.no-entity-reference-tree-button {
   width: 16px;
   height: 16px;
   display: inline-block;
@@ -26,7 +27,8 @@
   padding: 3px;
 }
 
-.region-content ul.entity-reference-tree-level, .entity-reference-tree-level {
+.region-content ul.entity-reference-tree-level,
+.entity-reference-tree-level {
   padding: 0;
 }
 
