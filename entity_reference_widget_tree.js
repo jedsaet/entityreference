@@ -3,22 +3,23 @@
 /**
  * Attaches the tree behavior to the entity widget form.
  */
-Drupal.behaviors.entityReferenceTree = {
+Drupal.behaviors.entityReferenceWidgetTree = {
   attach: function(context, settings) {
     // Bind the entity expand/contract button to slide toggle the list underneath.
-    $('.entity-reference-tree-button', context).once('entity-reference-tree-button').click(function() {
-      $(this).toggleClass('entity-reference-tree-collapsed');
+    $('.entity-reference-widget-tree-button', context).once('entity-reference-widget-tree-button').click(function() {
+      $(this).toggleClass('entity-reference-widget-tree-collapsed');
       $(this).siblings('ul').slideToggle('fast');
     });
 
     // An expand all button (unimplemented)
     /*
     $('.expandbutton').click(function() {
-      $(this).siblings('.entity-reference-tree-button').trigger('click');
+      $(this).siblings('.entity-reference-widget-tree-button').trigger('click');
     });
     */
 
-    $('.entity-reference-tree', context).once('entity-reference-tree', function() {
+
+    $('.entity-reference-widget-tree', context).once('entity-reference-widget-tree', function() {
       // On page load, check whether the maximum number of choices is already selected.
       // If so, disable the other options.
       var tree = $(this);
@@ -29,8 +30,8 @@ Drupal.behaviors.entityReferenceTree = {
 
       //On page load, check if the user wants a track list. If so, add the
       //currently selected items to it.
-      if($(this).hasClass('entity-reference-tree-track-list-shown')) {
-        var track_list_container = $(this).find('.entity-reference-tree-track-list');
+      if($(this).hasClass('entity-reference-widget-tree-track-list-shown')) {
+        var track_list_container = $(this).find('.entity-reference-widget-tree-track-list');
 
         //Var to track whether using checkboxes or radio buttons.
         var input_type =
@@ -56,7 +57,7 @@ Drupal.behaviors.entityReferenceTree = {
             // checkbox or radio.
             input_type
           );
-        });
+        }); //End labels.each
 
         //Show "nothing selected" message, if needed.
         showNothingSelectedMessage(track_list_container);
@@ -110,11 +111,11 @@ Drupal.behaviors.entityReferenceTree = {
 
           //Show "nothing selected" message, if needed.
           showNothingSelectedMessage(track_list_container);
-        });
-      }
+        }); //End process checkbox changes.
+      } //End Want a track list.
 
       //On page load, check if the user wants a cascading selection.
-      if($(this).hasClass('entity-reference-tree-cascading-selection')) {
+      if($(this).hasClass('entity-reference-widget-tree-cascading-selection')) {
 
         //Check children when checkboxes are clicked.
         $(this).find('.form-checkbox').change(function(event) {
@@ -223,21 +224,21 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
  * @param track_list_container Where the message is to be shown.
  */
 function showNothingSelectedMessage(track_list_container) {
-  // Is the message there already?
+  //Is the message there already?
   var message_showing = (track_list_container.find('.entity_ref_tree_nothing_message').size() != 0);
 
-  // Number of real items showing.
+  //Number of real items showing.
   var num_real_items_showing = message_showing ? track_list_container.find('li').size() - 1 : track_list_container.find('li').size();
   if (num_real_items_showing == 0) {
-    // No items showing, so show the message.
+    //No items showing, so show the message.
     if (! message_showing) {
       track_list_container.append(
-          '<li class="entity_ref_tree_nothing_message">' + entityReferenceTreeNothingSelectedText + '</li>'
+          '<li class="entity_ref_tree_nothing_message">' + entityReferenceWidgetTreeNothingSelectedText + '</li>'
       );
     }
   }
-  else {
-    // There are real items.
+  else { // !(num_real_items_showing == 0)
+    //There are real items.
     if (message_showing) {
       track_list_container.find('.entity_ref_tree_nothing_message').remove();
     }
@@ -271,12 +272,12 @@ function checkMaxChoices(item, checkbox) {
 
   if(checkbox) {
     if(item.hasClass('select-parents')) {
-      var track_list_container = item.find('.entity-reference-tree-track-list');
+      var track_list_container = item.find('.entity-reference-widget-tree-track-list');
       var input_type =
           (item.has('input[type=checkbox]').size() > 0) ? 'checkbox' : 'radio';
 
       if(checkbox.attr('checked')) {
-        checkbox.parents('ul.entity-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').each(function() {
+        checkbox.parents('ul.entity-reference-widget-tree-level li').children('div.form-item').children('input[type=checkbox]').each(function() {
           $(this).attr('checked', checkbox.attr('checked'));
 
           if(track_list_container) {

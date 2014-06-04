@@ -2,20 +2,20 @@
 
 /**
  * @file
- * Entity reference tree module provides widget and formatters to
+ * Entity Reference Widget tree module provides widget and formatters to
  * different entity field tree structures.
  */
 
-module_load_include('inc', 'entity_reference_tree', 'entity_reference_tree.widget');
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module','entity_reference_widget_tree') . '/entity_reference_widget_tree.widget.inc';
 
 /**
  * Implements hook_element_info().
  */
-function entity_reference_tree_element_info() {
+function entity_reference_widget_tree_element_info() {
   $types = array(
     'checkbox_tree' => array(
       '#input' => TRUE,
-      '#process' => array('entity_reference_tree_process_checkbox_tree'),
+      '#process' => array('entity_reference_widget_tree_process_checkbox_tree'),
       '#theme' => array('checkbox_tree'),
       '#pre_render' => array('form_pre_render_conditional_form_element'),
     ),
@@ -47,7 +47,7 @@ function entity_reference_tree_element_info() {
 /**
  * Implements hook_theme().
  */
-function entity_reference_tree_theme() {
+function entity_reference_widget_tree_theme() {
   return array(
     'checkbox_tree' => array(
       'render element' => 'element',
@@ -64,7 +64,7 @@ function entity_reference_tree_theme() {
     'checkbox_tree_track_list' => array(
       'render element' => 'element',
     ),
-    'entity_reference_tree_list' => array(
+    'entity_reference_widget_tree_list' => array(
       'render element' => 'element',
     ),
   );
@@ -73,7 +73,7 @@ function entity_reference_tree_theme() {
 /**
  * Recursively go through the option tree and return a flat array of options.
  */
-function _entity_reference_tree_flatten($element, &$form_state) {
+function _entity_reference_widget_tree_flatten($element, &$form_state) {
   $output = array();
   $children = element_children($element);
   foreach ($children as $c) {
@@ -82,7 +82,7 @@ function _entity_reference_tree_flatten($element, &$form_state) {
       $output[] = $child;
     }
     else {
-      $output = array_merge($output, _entity_reference_tree_flatten($child, $form_state));
+      $output = array_merge($output, _entity_reference_widget_tree_flatten($child, $form_state));
     }
   }
   return $output;
@@ -100,18 +100,22 @@ function _entity_reference_tree_flatten($element, &$form_state) {
  * @param string $filter
  *   A string defining the view to filter by (only used to detect whether view
  *   filtering is enabled
+ * @param array $id
+ *   The entity ID
+ * @param array $label
+ *   The entity label
  *
  * @return array
- *   A key/value array of entities (name => id)
+ *   A key/value array of entities (label => id)
  */
-function _entity_reference_tree_get_options(&$entities, &$allowed, $filter, $id, $name) {
+function _entity_reference_widget_tree_get_options(&$entities, &$allowed, $filter, $id, $label) {
   $options = array();
 
   if (is_array($entities) && count($entities) > 0) {
     foreach ($entities as $entity) {
       if (!$filter || (is_array($allowed) && isset($allowed[$entity->{$id}]))) {
-        $options[$entity->{$id}] = $entity->{$name};
-        $options += _entity_reference_tree_get_options($entity->children, $allowed, $filter, $id, $name);
+        $options[$entity->{$id}] = $entity->{$label};
+        $options += _entity_reference_widget_tree_get_options($entity->children, $allowed, $filter, $id, $label);
       }
     }
   }

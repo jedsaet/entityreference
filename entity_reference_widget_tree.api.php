@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Provides an API for entity reference tree.
+ * Hooks provided by the Entity Reference Widget Tree module.
  */
 
 /**
@@ -18,7 +18,7 @@
  * @return array
  *   A nested tree of entities
  */
-function hook_get_entity_hierarchy($element, $allowed_ids, $label = '') {
+function entity_reference_widget_tree_get_entity_hierarchy($element, $allowed_ids, $label = '') {
 }
 
 /**
@@ -32,5 +32,5 @@ function hook_get_entity_hierarchy($element, $allowed_ids, $label = '') {
  * @return object
  *   An entity object
  */
-function hook_get_entity_parent($element, $entity_id) {
+function entity_reference_widget_tree_get_entity_parent($element, $entity_id) {
 }

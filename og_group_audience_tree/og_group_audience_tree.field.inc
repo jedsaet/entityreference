@@ -2,16 +2,16 @@
 
 /**
  * @file
- * Configure an og reference field output format.
+ * Configure an OG group audience field output format.
  */
 
 /**
  * Implements hook_field_formatter_info().
  */
-function og_reference_tree_field_formatter_info() {
+function og_group_audience_tree_field_formatter_info() {
   return array(
-    'og_reference_tree' => array(
-      'label' => 'OG reference tree',
+    'og_group_audience_tree' => array(
+      'label' => 'OG group audience tree',
       'field types' => array('entityreference'),
       'settings' => array(
         'token_display_selected' => '',
@@ -27,21 +27,21 @@ function og_reference_tree_field_formatter_info() {
 /**
  * Implements hook_field_formatter_view().
  */
-function og_reference_tree_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+function og_group_audience_tree_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
   $element = array();
 
   switch ($display['type']) {
-    case 'og_reference_tree':
+    case 'og_group_audience_tree':
       if (!empty($items)) {
         $element[] = array(
-          '#theme' => 'entity_reference_tree_list',
+          '#theme' => 'entity_reference_widget_tree_list',
           '#data' => $items,
           '#display' => $display,
           '#attached' => array(
             'css' => array(
-              drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
-              drupal_get_path('module', 'og_reference_tree') . '/og_reference_tree.css',
-            ),
+              drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css',
+              drupal_get_path('module', 'og_group_audience_tree') . '/og_group_audience_tree.css'
+            )
           ),
         );
       }
@@ -55,7 +55,7 @@ function og_reference_tree_field_formatter_view($entity_type, $entity, $field, $
 /**
  * Implements hook_field_formatter_settings_form().
  */
-function og_reference_tree_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+function og_group_audience_tree_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
   $element = array();
 
   return $element;
@@ -65,7 +65,7 @@ function og_reference_tree_field_formatter_settings_form($field, $instance, $vie
 /**
  * Implements hook_field_formatter_settings_summary().
  */
-function og_reference_tree_field_formatter_settings_summary($field, $instance, $view_mode) {
+function og_group_audience_tree_field_formatter_settings_summary($field, $instance, $view_mode) {
   $summary = '';
 
   return $summary;

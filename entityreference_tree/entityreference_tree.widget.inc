@@ -65,7 +65,7 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
       '#title' => t('Select parents automatically'),
       '#description' => t("When turned on, this option causes the widget to automatically select the ancestors of all selected items. In Leaves Only mode, the parents will be added invisibly to the selected value.  <em>This option is only valid if an unlimited number of values can be selected.</em>"),
       '#default_value' => $settings['select_parents'],
-      '#element_validate' => array('_entity_reference_tree_select_parents_validate'),
+      '#element_validate' => array('_entity_reference_widget_tree_select_parents_validate'),
       '#return_value' => 1,
     );
 
@@ -74,7 +74,7 @@ function entityreference_tree_field_widget_settings_form($field, $instance) {
       '#title' => t('Cascading selection'),
       '#description' => t('On parent selection, automatically select children if none were selected. Some may then be manually unselected. In the same way, on parent unselection, unselect children if all were selected. <em>This option is only valid if an unlimited number of values can be selected.</em>'),
       '#default_value' => $settings['cascading_selection'],
-      '#element_validate' => array('_entity_reference_tree_cascading_selection_validate'),
+      '#element_validate' => array('_entity_reference_widget_tree_cascading_selection_validate'),
       '#return_value' => 1,
     );
 
@@ -157,9 +157,9 @@ function entityreference_tree_field_widget_form(&$form, &$form_state, $field, $i
   switch ($instance['widget']['type']) {
     case 'entityreference_tree':
       $element['#field'] = 'entityreference_tree';
-      $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.js');
+      $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.js');
       $element['#attached']['css'] = array(
-        drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
+        drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css',
         drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css',
       );
       $element['#type'] = 'checkbox_tree';
@@ -185,7 +185,7 @@ function entityreference_tree_field_widget_form(&$form, &$form_state, $field, $i
 
   $element += array(
     '#value_key' => $value_key,
-    '#element_validate' => array('_entity_reference_tree_widget_validate'),
+    '#element_validate' => array('_entity_reference_widget_tree_validate'),
     '#properties' => $properties,
   );
 

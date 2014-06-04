@@ -2,16 +2,16 @@
 
 /**
  * @file
- * Provides field widget hooks for og reference.
+ * Provides field widget hooks for OG group audience.
  */
 
 /**
  * Implements hook_field_widget_info().
  */
-function og_reference_tree_field_widget_info() {
+function og_group_audience_tree_field_widget_info() {
   return array(
-    'og_reference_tree' => array(
-      'label' => t('OG reference tree'),
+    'og_group_audience_tree' => array(
+      'label' => t('OG group audience tree'),
       'field types' => array('entityreference'),
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_CUSTOM,
@@ -38,12 +38,12 @@ function og_reference_tree_field_widget_info() {
 /**
  * Implements hook_field_widget_settings_form().
  */
-function og_reference_tree_field_widget_settings_form($field, $instance) {
+function og_group_audience_tree_field_widget_settings_form($field, $instance) {
   $widget = $instance['widget'];
   $settings = $widget['settings'];
   $form = array();
 
-  if ($widget['type'] == 'og_reference_tree') {
+  if ($widget['type'] == 'og_group_audience_tree') {
     $form['start_minimized'] = array(
       '#type' => 'checkbox',
       '#title' => t('Start minimized'),
@@ -65,7 +65,7 @@ function og_reference_tree_field_widget_settings_form($field, $instance) {
       '#title' => t('Select parents automatically'),
       '#description' => t("When turned on, this option causes the widget to automatically select the ancestors of all selected items. In Leaves Only mode, the parents will be added invisibly to the selected value.  <em>This option is only valid if an unlimited number of values can be selected.</em>"),
       '#default_value' => $settings['select_parents'],
-      '#element_validate' => array('_entity_reference_tree_select_parents_validate'),
+      '#element_validate' => array('_entity_reference_widget_tree_select_parents_validate'),
       '#return_value' => 1,
     );
 
@@ -74,7 +74,7 @@ function og_reference_tree_field_widget_settings_form($field, $instance) {
       '#title' => t('Cascading selection'),
       '#description' => t('On parent selection, automatically select children if none were selected. Some may then be manually unselected. In the same way, on parent unselection, unselect children if all were selected. <em>This option is only valid if an unlimited number of values can be selected.</em>'),
       '#default_value' => $settings['cascading_selection'],
-      '#element_validate' => array('_entity_reference_tree_cascading_selection_validate'),
+      '#element_validate' => array('_entity_reference_widget_tree_cascading_selection_validate'),
       '#return_value' => 1,
     );
 
@@ -131,7 +131,7 @@ function og_reference_tree_field_widget_settings_form($field, $instance) {
 /**
  * Implements hook_field_widget_form().
  */
-function og_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+function og_group_audience_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $settings = $instance['widget']['settings'];
   $value_key = key($field['columns']);
 
@@ -155,12 +155,12 @@ function og_reference_tree_field_widget_form(&$form, &$form_state, $field, $inst
 
   // A switch statement, in case we ever add more widgets to this module.
   switch ($instance['widget']['type']) {
-    case 'og_reference_tree':
-      $element['#field'] = 'og_reference_tree';
-      $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.js');
+    case 'og_group_audience_tree':
+      $element['#field'] = 'og_group_audience_tree';
+      $element['#attached']['js'] = array(drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.js');
       $element['#attached']['css'] = array(
-        drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
-        drupal_get_path('module', 'og_reference_tree') . '/og_reference_tree.css',
+        drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css',
+        drupal_get_path('module', 'og_group_audience_tree') . '/og_group_audience_tree.css',
       );
       $element['#type'] = 'checkbox_tree';
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
@@ -185,7 +185,7 @@ function og_reference_tree_field_widget_form(&$form, &$form_state, $field, $inst
 
   $element += array(
     '#value_key' => $value_key,
-    '#element_validate' => array('_entity_reference_tree_widget_validate'),
+    '#element_validate' => array('_entity_reference_widget_tree_validate'),
     '#properties' => $properties,
   );
 

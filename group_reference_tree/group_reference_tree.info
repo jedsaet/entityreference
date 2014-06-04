@@ -4,4 +4,4 @@ package = Fields
 core = 7.x
 
 dependencies[] = group
-dependencies[] = entity_reference_tree
+dependencies[] = entity_reference_widget_tree

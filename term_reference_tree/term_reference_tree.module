@@ -2,11 +2,11 @@
 
 /**
  * @file
- * Provides field entity_reference tree hooks for term reference tree.
+ * Provides field Entity Reference Widget Tree hooks for term reference tree.
  */
 
-module_load_include('inc', 'term_reference_tree', 'term_reference_tree.field');
-module_load_include('inc', 'term_reference_tree', 'term_reference_tree.widget');
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module','term_reference_tree') . '/term_reference_tree.widget.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module','term_reference_tree') . '/term_reference_tree.field.inc';
 
 /**
  * Implements hook_get_entity_hierarchy().
@@ -71,9 +71,8 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
 }
 
 /**
- * This function is like taxonomy_get_children.
- *
- * Except it doesn't load the entire term.
+ * This function is like taxonomy_get_children, except it
+ * doesn't load the entire term.
  *
  * @param int $tid
  *   The ID of the term whose children you want to get.

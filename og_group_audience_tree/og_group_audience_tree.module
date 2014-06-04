@@ -2,18 +2,18 @@
 
 /**
  * @file
- * Provides field entity_reference tree hooks for og reference tree.
+ * Provides field Entity Reference Widget Tree hooks for OG group audience tree.
  */
 
-module_load_include('inc', 'og_reference_tree', 'og_reference_tree.field');
-module_load_include('inc', 'og_reference_tree', 'og_reference_tree.widget');
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module','og_group_audience_tree') . '/og_group_audience_tree.widget.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module','og_group_audience_tree') . '/og_group_audience_tree.field.inc';
 
 /**
  * Implements hook_get_entity_hierarchy().
  */
-function og_reference_tree_get_entity_hierarchy($element, $allowed_ids, $label = '') {
-  if ($element['#field'] == 'og_reference_tree') {
-    return _og_reference_tree_get_og_hierarchy($element['#allowed_bundles']['#parent_id'], $element['#allowed_bundles']['entity_type'], $element['#allowed_bundles']['bundle_names'], $allowed_ids, $element['#filter_view'], $label);
+function og_group_audience_tree_get_entity_hierarchy($element, $allowed_ids, $label = '') {
+  if ($element['#field'] == 'og_group_audience_tree') {
+    return _og_group_audience_tree_get_og_hierarchy($element['#allowed_bundles']['#parent_id'], $element['#allowed_bundles']['entity_type'], $element['#allowed_bundles']['bundle_names'], $allowed_ids, $element['#filter_view'], $label);
   }
 }
 
@@ -30,8 +30,8 @@ function og_reference_tree_get_entity_hierarchy($element, $allowed_ids, $label =
  * @return array
  *   A nested array of the OG group's child objects.
  */
-function _og_reference_tree_get_og_hierarchy($parent_id, $entity_type, $bundle_names, &$allowed, $filter, $label, $default = array()) {
-  $entities = _og_reference_tree_get_children($parent_id, $entity_type, $bundle_names);
+function _og_group_audience_tree_get_og_hierarchy($parent_id, $entity_type, $bundle_names, &$allowed, $filter, $label, $default = array()) {
+  $entities = _og_group_audience_tree_get_children($parent_id, $entity_type, $bundle_names);
   $entity_info = entity_get_info($entity_type);
 
   $result = array();
@@ -40,10 +40,10 @@ function _og_reference_tree_get_og_hierarchy($parent_id, $entity_type, $bundle_n
     foreach ($allowed as $k => $v) {
       if (array_key_exists($k, $entities)) {
         $entity =& $entities[$k];
-        $children = _og_reference_tree_get_og_hierarchy($entity->{$entity_info['entity keys']['id']}, $entity_type, $bundle_names, $allowed, $filter, $label, $default);
+        $children = _og_group_audience_tree_get_og_hierarchy($entity->{$entity_info['entity keys']['id']}, $entity_type, $bundle_names, $allowed, $filter, $label, $default);
         if (is_array($children)) {
           $entity->children = $children;
-          $entity->children_selected = _og_reference_tree_children_selected($entity, $default, $entity_info['entity keys']['id']);
+          $entity->children_selected = _og_group_audience_tree_children_selected($entity, $default, $entity_info['entity keys']['id']);
         }
         else {
           $entity->children_selected = FALSE;
@@ -56,10 +56,10 @@ function _og_reference_tree_get_og_hierarchy($parent_id, $entity_type, $bundle_n
   elseif ($entities) {
     foreach ($entities as &$entity) {
       if ($filter == '' || array_key_exists($entity->{$entity_info['entity keys']['id']}, $allowed)) {
-        $children = _og_reference_tree_get_og_hierarchy($entity->{$entity_info['entity keys']['id']}, $entity_type, $bundle_names, $allowed, $filter, $label, $default);
+        $children = _og_group_audience_tree_get_og_hierarchy($entity->{$entity_info['entity keys']['id']}, $entity_type, $bundle_names, $allowed, $filter, $label, $default);
         if (is_array($children)) {
           $entity->children = $children;
-          $entity->children_selected = _og_reference_tree_children_selected($entity, $default, $entity_info['entity keys']['id']);
+          $entity->children_selected = _og_group_audience_tree_children_selected($entity, $default, $entity_info['entity keys']['id']);
         }
         else {
           $entity->children_selected = FALSE;
@@ -74,9 +74,8 @@ function _og_reference_tree_get_og_hierarchy($parent_id, $entity_type, $bundle_n
 }
 
 /**
- * This function is like taxonomy_get_children.
- *
- * Except it doesn't load the entire og group.
+ * This function is like taxonomy_get_children,
+ * except it doesn't load the entire og group.
  *
  * @param int $parent_id
  *   The ID of the OG group whose children you want to get.
@@ -88,7 +87,7 @@ function _og_reference_tree_get_og_hierarchy($parent_id, $entity_type, $bundle_n
  * @return array
  *   Array of OG groups, each in the form array('id'=>$entity_id,'name'=>$name).
  */
-function _og_reference_tree_get_children($parent_id, $entity_type, $bundle_names) {
+function _og_group_audience_tree_get_children($parent_id, $entity_type, $bundle_names) {
   $etids = array();
 
   if ($parent_id) {
@@ -135,7 +134,7 @@ function _og_reference_tree_get_children($parent_id, $entity_type, $bundle_names
 /**
  * Select children.
  */
-function _og_reference_tree_children_selected($entities, $default, $id) {
+function _og_group_audience_tree_children_selected($entities, $default, $id) {
   foreach ($entities->children as $entity) {
     if (isset($default[$entity->$id]) || $entity->children_selected) {
       return TRUE;
@@ -147,10 +146,8 @@ function _og_reference_tree_children_selected($entities, $default, $id) {
 /**
  * Implements hook_get_entity_parent().
  */
-function og_reference_tree_get_entity_parent($element, $parent_id) {
-  if (!$parent_id) {
-    return;
-  }
+function og_group_audience_tree_get_entity_parent($element, $parent_id) {
+  if (!$parent_id) return;
   $query = db_select('og_membership ', 'o');
   $query->fields('o', array('gid'));
   $query->condition('o.etid', $parent_id);

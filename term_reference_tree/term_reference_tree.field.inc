@@ -34,10 +34,15 @@ function term_reference_tree_field_formatter_view($entity_type, $entity, $field,
     case 'term_reference_tree':
       if (!empty($items)) {
         $element[] = array(
-          '#theme' => 'entity_reference_tree_list',
+          '#theme' => 'entity_reference_widget_tree_list',
           '#data' => $items,
           '#display' => $display,
-          '#attached' => array('css' => array(drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css')),
+          '#attached' => array(
+            'css' => array(
+              drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css',
+              drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css',
+            )
+          ),
         );
       }
       break;

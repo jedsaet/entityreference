@@ -1,5 +1,4 @@
-.entity-reference-tree-button,
-.no-entity-reference-tree-button {
+.entity-reference-widget-tree-button, .no-entity-reference-widget-tree-button {
   width: 16px;
   height: 16px;
   display: inline-block;
@@ -9,15 +8,15 @@
   margin-right: 4px;
 }
 
-.entity-reference-tree-button {
+.entity-reference-widget-tree-button {
   background-image: url('images/bullet_toggle_minus.png');
 }
 
-.no-entity-reference-tree-button {
+.no-entity-reference-widget-tree-button {
   background-color: #ddd;
 }
 
-.entity-reference-tree-button.entity-reference-tree-collapsed {
+.entity-reference-widget-tree-button.entity-reference-widget-tree-collapsed {
   background-image: url('images/bullet_toggle_plus.png');
 }
 
@@ -27,16 +26,14 @@
   padding: 3px;
 }
 
-.region-content ul.entity-reference-tree-level,
-.entity-reference-tree-level {
+.region-content ul.entity-reference-widget-tree-level, .entity-reference-widget-tree-level {
   padding: 0;
 }
 
 /*
  * Styles for track list of selected options.
  */
-
-.entity-reference-tree-track-list li {
+.entity-reference-widget-tree-track-list li {
   list-style-type: none;
   list-style-image: none;
   margin-left: 10px;
@@ -45,25 +42,25 @@
   cursor: pointer;
 }
 
-.entity-reference-tree-track-list li.track-item:hover {
+.entity-reference-widget-tree-track-list li.track-item:hover {
   color: red;
   background-image: url("images/bullet_delete.png");
   background-repeat: no-repeat;
   background-position: middle left;
 }
 
-.entity-reference-tree-track-list li.entity_ref_tree_nothing_message {
+.entity-reference-widget-tree-track-list li.entity-reference-widget-tree-nothing-message {
   list-style-type: none;
   list-style-image: none;
   font-style: italic;
   cursor: default;
 }
 
-.entity-reference-track-list-container {
+.entity-reference-widget-track-list-container {
   padding: 5px;
 }
 
-.entity-reference-track-list-label {
+.entity-reference-widget-track-list-label {
   font-weight: bold;
 }
 

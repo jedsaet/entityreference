@@ -1,7 +1,10 @@
-name = EntityReference Tree
+name = EntityReference Widget Tree
 description = An expanding/collapsing tree widget for selecting entities in a entity reference field
 package = Fields
 core = 7.x
 
+files[] = entityreference_tree.field.inc
+files[] = entityreference_tree.widget.inc
+
 dependencies[] = entityreference
-dependencies[] = entity_reference_tree
+dependencies[] = entity_reference_widget_tree

@@ -34,14 +34,14 @@ function entityreference_tree_field_formatter_view($entity_type, $entity, $field
       if (!empty($items)) {
         $display['settings']['target_entity'] = $field['settings']['target_type'];
         $element[] = array(
-          '#theme' => 'entity_reference_tree_list',
+          '#theme' => 'entity_reference_widget_tree_list',
           '#data' => $items,
           '#display' => $display,
           '#attached' => array(
             'css' => array(
-              drupal_get_path('module', 'entity_reference_tree') . '/entity_reference_tree.css',
+              drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css',
               drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.css',
-            ),
+            )
           ),
         );
       }
