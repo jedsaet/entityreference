@@ -29,7 +29,8 @@ INSTALLATION:
 USAGE
 -----
 
-You can use it either as a widget attached to a field or you may also use it as a form type (like checkbox or radio), below please find an example
+You can use it either as a widget attached to a field or you may also use
+it as a form type (like checkbox or radio), below please find an example.
 
 $test = array (
   array(

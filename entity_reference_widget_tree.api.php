@@ -15,7 +15,7 @@
  * @param string $label
  *   A list of allowed Ids.
  */
-function entity_reference_widget_tree_get_entity_hierarchy($element, $allowed_ids, $label = '') {
+function entity_reference_widget_tree_get_entity_hierarchy(array $element, array $allowed_ids, $label = '') {
 }
 
 /**
@@ -26,5 +26,5 @@ function entity_reference_widget_tree_get_entity_hierarchy($element, $allowed_id
  * @param int $entity_id
  *   The entity ID.
  */
-function entity_reference_widget_tree_get_entity_parent($element, $entity_id) {
+function entity_reference_widget_tree_get_entity_parent(array $element, $entity_id) {
 }

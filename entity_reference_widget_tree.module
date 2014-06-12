@@ -101,15 +101,15 @@ function _entity_reference_widget_tree_flatten($element, &$form_state) {
  * @param string $filter
  *   A string defining the view to filter by (only used to detect whether view
  *   filtering is enabled.
- * @param array $id
+ * @param int $id
  *   The entity ID.
- * @param array $label
+ * @param string $label
  *   The entity label.
  *
  * @return array
  *   A key/value array of entities (label => id)
  */
-function _entity_reference_widget_tree_get_options(&$entities, &$allowed, $filter, $id, $label) {
+function _entity_reference_widget_tree_get_options(array &$entities, array &$allowed, $filter, $id, $label) {
   $options = array();
 
   if (is_array($entities) && count($entities) > 0) {

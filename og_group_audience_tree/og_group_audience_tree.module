@@ -74,7 +74,7 @@ function _og_group_audience_tree_get_og_hierarchy($parent_id, $entity_type, $bun
 }
 
 /**
- * This function is like taxonomy_get_children but doesn't load the entire og group.
+ * Function like taxonomy_get_children but doesn't load entire group audience.
  *
  * @param int $parent_id
  *   The ID of the OG group whose children you want to get.
