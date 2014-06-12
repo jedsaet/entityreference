@@ -5,8 +5,8 @@
  * Provides field Entity Reference Widget Tree hooks for entityreference tree.
  */
 
-require_once DRUPAL_ROOT . '/' . drupal_get_path('module','entityreference_tree') . '/entityreference_tree.widget.inc';
-require_once DRUPAL_ROOT . '/' . drupal_get_path('module','entityreference_tree') . '/entityreference_tree.field.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.widget.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'entityreference_tree') . '/entityreference_tree.field.inc';
 
 /**
  * @file
@@ -49,11 +49,13 @@ function _entityreference_tree_get_hierarchy($parent_id, $entity_type, $bundle_n
     case 'taxonomy_term':
       $entities = _entityreference_term_tree_get_children($parent_id, $bundle_names);
       break;
+
     case 'node':
       $entities = _entityreference_node_tree_get_children($parent_id, $entity_type, $bundle_names, $field_name);
       break;
+
     default:
-      return;
+      return FALSE;
   }
   $entity_info = entity_get_info($entity_type);
 
@@ -97,8 +99,7 @@ function _entityreference_tree_get_hierarchy($parent_id, $entity_type, $bundle_n
 }
 
 /**
- * This function is like taxonomy_get_children,
- * except it doesn't load the entire term.
+ * This function is like taxonomy_get_children but doesn't load the entire term.
  *
  * @param int $tid
  *   The ID of the term whose children you want to get.
@@ -136,8 +137,7 @@ function _entityreference_term_tree_get_children($tid, $vids) {
 }
 
 /**
- * This function is like taxonomy_get_children,
- * except it doesn't load the entire node.
+ * This function is like taxonomy_get_children but doesn't load the entire node.
  *
  * @param int $parent_id
  *   The ID of the OG group whose children you want to get.
@@ -147,7 +147,7 @@ function _entityreference_term_tree_get_children($tid, $vids) {
  *   The bundle names.
  *
  * @return array
- *   Array of nodes, each in the form array('parent_id'=>$parent_id,'name'=>$name).
+ *   Array of nodes array('parent_id'=>$parent_id,'name'=>$name).
  */
 function _entityreference_node_tree_get_children($parent_id, $entity_type, $bundle_names, $field_name) {
   if ($parent_id) {
@@ -203,8 +203,9 @@ function _entityreference_reference_tree_children_selected($entities, $default, 
 function _entityreference_tree_get_entity_parent($element, $parent_id) {
   switch ($entity_type) {
     case 'taxonomy_term':
-      $entities = db_query_range("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid", 0, 1, array(':tid'  => $parent_id));
+      $entities = db_query_range("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid", 0, 1, array(':tid' => $parent_id));
       break;
+
     case 'node':
       $field_name = $element['#field_name'];
       $entities = db_query_range("select h.entity_id as parent from {field_data_" . $field_name . "} h where h." . $field_name . "_target_id = :target_id", 0, 1, array(':target_id' => $parent_id));

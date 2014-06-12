@@ -3,8 +3,5 @@ description = An expanding/collapsing tree widget for selecting entities in a OG
 package = Fields
 core = 7.x
 
-files[] = og_group_audience_tree.field.inc
-files[] = og_group_audience_tree.widget.inc
-
 dependencies[] = og
 dependencies[] = entity_reference_widget_tree

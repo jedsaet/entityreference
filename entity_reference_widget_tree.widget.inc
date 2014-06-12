@@ -44,7 +44,7 @@ function theme_entity_reference_widget_tree_list($variables) {
     }
   }
 
-  $output = "<div class='entity-tree-list'>";
+  $output = "<div class='entity-reference-widget-tree-list'>";
   $output .= _entity_reference_widget_tree_output_list_level($element, $tree);
   $output .= "</div>";
   return $output;
@@ -202,14 +202,8 @@ function entity_reference_widget_tree_process_checkbox_tree($element, $form_stat
  */
 function entity_reference_widget_tree_prepare_object(&$element) {
   if (!isset($element['#attached'])) {
-    $element['#attached'] = array(
-      'js' => array(
-        0 => array(drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.js'),
-      ),
-      'css' => array(
-        0 => array(drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css'),
-      ),
-    );
+    $element['#attached']['js'][] = drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.js';
+    $element['#attached']['css'][] = drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css';
   }
   $element['#max_choices'] = isset($element['#max_choices']) ? $element['#max_choices'] : 1;
   $element['#max_depth'] = isset($element['#max_depth']) ? $element['#max_depth'] : '';
@@ -397,8 +391,8 @@ function theme_checkbox_tree_track_list($variables) {
       'Selected item (click the item to uncheck it)',
       'Selected items (click an item to uncheck it)'
   );
-  $output = '<div class="entity-reference-widget-track-list-container">';
-  $output .= '<div class="entity-reference-widget-track-list-label">' . $label . '</div>';
+  $output = '<div class="entity-reference-widget-tree-track-list-container">';
+  $output .= '<div class="entity-reference-widget-tree-track-list-label">' . $label . '</div>';
   $output .= '<ul class="entity-reference-widget-tree-track-list"><li class="entity-reference-widget-tree-nothing-message">' . $nothingselected . '</li></ul>';
   $output .= '</div>';
 

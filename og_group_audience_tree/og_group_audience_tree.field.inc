@@ -40,8 +40,8 @@ function og_group_audience_tree_field_formatter_view($entity_type, $entity, $fie
           '#attached' => array(
             'css' => array(
               drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css',
-              drupal_get_path('module', 'og_group_audience_tree') . '/og_group_audience_tree.css'
-            )
+              drupal_get_path('module', 'og_group_audience_tree') . '/og_group_audience_tree.css',
+            ),
           ),
         );
       }

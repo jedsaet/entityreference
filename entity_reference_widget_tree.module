@@ -2,11 +2,12 @@
 
 /**
  * @file
- * Entity Reference Widget tree module provides widget and formatters to
- * different entity field tree structures.
+ * Entity Reference Widget tree module.
+ *
+ * It provides widget and formatters to different entity field tree structures.
  */
 
-require_once DRUPAL_ROOT . '/' . drupal_get_path('module','entity_reference_widget_tree') . '/entity_reference_widget_tree.widget.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.widget.inc';
 
 /**
  * Implements hook_element_info().
@@ -96,14 +97,14 @@ function _entity_reference_widget_tree_flatten($element, &$form_state) {
  * @param array $entities
  *   An array of entities IDs.
  * @param array $allowed
- *   An array containing the entities allowed by the filter view
+ *   An array containing the entities allowed by the filter view.
  * @param string $filter
  *   A string defining the view to filter by (only used to detect whether view
- *   filtering is enabled
+ *   filtering is enabled.
  * @param array $id
- *   The entity ID
+ *   The entity ID.
  * @param array $label
- *   The entity label
+ *   The entity label.
  *
  * @return array
  *   A key/value array of entities (label => id)

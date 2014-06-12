@@ -5,8 +5,8 @@
  * Provides field Entity Reference Widget Tree hooks for OG group audience tree.
  */
 
-require_once DRUPAL_ROOT . '/' . drupal_get_path('module','og_group_audience_tree') . '/og_group_audience_tree.widget.inc';
-require_once DRUPAL_ROOT . '/' . drupal_get_path('module','og_group_audience_tree') . '/og_group_audience_tree.field.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'og_group_audience_tree') . '/og_group_audience_tree.widget.inc';
+require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'og_group_audience_tree') . '/og_group_audience_tree.field.inc';
 
 /**
  * Implements hook_get_entity_hierarchy().
@@ -74,8 +74,7 @@ function _og_group_audience_tree_get_og_hierarchy($parent_id, $entity_type, $bun
 }
 
 /**
- * This function is like taxonomy_get_children,
- * except it doesn't load the entire og group.
+ * This function is like taxonomy_get_children but doesn't load the entire og group.
  *
  * @param int $parent_id
  *   The ID of the OG group whose children you want to get.
@@ -147,7 +146,9 @@ function _og_group_audience_tree_children_selected($entities, $default, $id) {
  * Implements hook_get_entity_parent().
  */
 function og_group_audience_tree_get_entity_parent($element, $parent_id) {
-  if (!$parent_id) return;
+  if (!$parent_id) {
+    return;
+  }
   $query = db_select('og_membership ', 'o');
   $query->fields('o', array('gid'));
   $query->condition('o.etid', $parent_id);

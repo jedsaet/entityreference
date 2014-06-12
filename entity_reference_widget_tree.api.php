@@ -11,12 +11,9 @@
  * @param array $element
  *   The main checkbox_tree element.
  * @param array $allowed_ids
- *   A list of allowed Ids
+ *   A list of allowed Ids.
  * @param string $label
- *   A list of allowed Ids
- *
- * @return array
- *   A nested tree of entities
+ *   A list of allowed Ids.
  */
 function entity_reference_widget_tree_get_entity_hierarchy($element, $allowed_ids, $label = '') {
 }
@@ -27,10 +24,7 @@ function entity_reference_widget_tree_get_entity_hierarchy($element, $allowed_id
  * @param array $element
  *   The main checkbox_tree element.
  * @param int $entity_id
- *   The entity ID
- *
- * @return object
- *   An entity object
+ *   The entity ID.
  */
 function entity_reference_widget_tree_get_entity_parent($element, $entity_id) {
 }

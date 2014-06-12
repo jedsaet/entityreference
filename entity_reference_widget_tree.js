@@ -30,8 +30,8 @@ Drupal.behaviors.entityReferenceWidgetTree = {
 
       //On page load, check if the user wants a track list. If so, add the
       //currently selected items to it.
-      if($(this).hasClass('entity-reference-widget-tree-track-list-shown')) {
-        var track_list_container = $(this).find('.entity-reference-widget-tree-track-list');
+      if($(this).hasClass('entity-reference-widget-tree-widget-track-list-shown')) {
+        var track_list_container = $(this).find('.entity-reference-widget-tree-widget-track-list');
 
         //Var to track whether using checkboxes or radio buttons.
         var input_type =
@@ -225,7 +225,7 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
  */
 function showNothingSelectedMessage(track_list_container) {
   //Is the message there already?
-  var message_showing = (track_list_container.find('.entity_ref_tree_nothing_message').size() != 0);
+  var message_showing = (track_list_container.find('.entity-reference-widget-tree-nothing-message').size() != 0);
 
   //Number of real items showing.
   var num_real_items_showing = message_showing ? track_list_container.find('li').size() - 1 : track_list_container.find('li').size();
@@ -233,14 +233,14 @@ function showNothingSelectedMessage(track_list_container) {
     //No items showing, so show the message.
     if (! message_showing) {
       track_list_container.append(
-          '<li class="entity_ref_tree_nothing_message">' + entityReferenceWidgetTreeNothingSelectedText + '</li>'
+          '<li class="entity-reference-widget-tree-nothing-message">' + entityReferenceWidgetTreeNothingSelectedText + '</li>'
       );
     }
   }
   else { // !(num_real_items_showing == 0)
     //There are real items.
     if (message_showing) {
-      track_list_container.find('.entity_ref_tree_nothing_message').remove();
+      track_list_container.find('.entity-reference-widget-tree-nothing-message').remove();
     }
   }
 }
@@ -251,7 +251,7 @@ function showNothingSelectedMessage(track_list_container) {
  * @param track_list_container Where the message is shown.
  */
 function removeNothingSelectedMessage(track_list_container) {
-  track_list_container.find('.entity_ref_tree_nothing_message').remove();
+  track_list_container.find('.entity-reference-widget-tree-nothing-message').remove();
 }
 
 // This helper function checks if the maximum number of choices is already selected.
@@ -259,7 +259,7 @@ function removeNothingSelectedMessage(track_list_container) {
 function checkMaxChoices(item, checkbox) {
   var maxChoices = -1;
   try {
-    maxChoices = parseInt(Drupal.settings.entity_reference_tree.trees[item.attr('id')]['max_choices']);
+    maxChoices = parseInt(Drupal.settings.entity_reference_widget_tree.trees[item.attr('id')]['max_choices']);
   }
   catch (e){}
   var count = item.find(':checked').length;
@@ -272,7 +272,7 @@ function checkMaxChoices(item, checkbox) {
 
   if(checkbox) {
     if(item.hasClass('select-parents')) {
-      var track_list_container = item.find('.entity-reference-widget-tree-track-list');
+      var track_list_container = item.find('.entity-reference-widget-tree-widget-track-list');
       var input_type =
           (item.has('input[type=checkbox]').size() > 0) ? 'checkbox' : 'radio';
 

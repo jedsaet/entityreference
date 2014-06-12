@@ -3,8 +3,5 @@ description = An expanding/collapsing tree widget for selecting terms in a taxon
 package = Fields
 core = 7.x
 
-files[] = term_reference_tree.field.inc
-files[] = term_reference_tree.widget.inc
-
 dependencies[] = taxonomy
 dependencies[] = entity_reference_widget_tree

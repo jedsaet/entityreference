@@ -41,7 +41,7 @@ function term_reference_tree_field_formatter_view($entity_type, $entity, $field,
             'css' => array(
               drupal_get_path('module', 'entity_reference_widget_tree') . '/entity_reference_widget_tree.css',
               drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css',
-            )
+            ),
           ),
         );
       }

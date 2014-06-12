@@ -71,8 +71,7 @@ function _group_reference_tree_get_group_hierarchy($parent_id, $entity_type, $bu
 }
 
 /**
- * This function is like taxonomy_get_children,
- * except it doesn't load the entire group.
+ * This function is like taxonomy_get_children but doesn't load the entire group.
  *
  * @param int $parent_id
  *   The ID of the group whose children you want to get.
@@ -144,7 +143,9 @@ function _group_reference_tree_children_selected($entities, $default, $id) {
  * Implements hook_get_entity_parent().
  */
 function group_reference_tree_get_entity_parent($element, $parent_id) {
-  if (!$parent_id) return;
+  if (!$parent_id) {
+    return;
+  }
   $query = db_select('group_entity ', 'o');
   $query->fields('o', array('gid'));
   $query->condition('o.etid', $parent_id);
